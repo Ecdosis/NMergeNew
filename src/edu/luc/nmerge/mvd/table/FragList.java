@@ -1,0 +1,716 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package edu.luc.nmerge.mvd.table;
+import edu.luc.nmerge.mvd.Version;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Stack;
+
+/**
+ * A list of concatenated fragments within a Section. Represented by a 
+ * table cell in HTML. A FragList does not have a set of versions, but the 
+ * versions shared by all fragments in the list can be computed on the fly 
+ * by the getShared method. Individually Atoms in the list may go outside 
+ * this narrow band.
+ */
+public class FragList
+{
+    /** atoms of which we are composed (can include tables) */
+    ArrayList<Atom> fragments;
+    /** a reverse-order list of edit operations or null */
+    Step editScript;
+    /** this fraglist is the base version of a nested row */
+    boolean isBase;
+    /** is this fraglist a possibly empty merged one? */
+    boolean merged;
+    /** Is this fraglist part of a nested table? */
+    boolean nested;
+    /**
+     * Create an empty frag list 
+     */
+    FragList()
+    {
+        fragments = new ArrayList<Atom>();
+    }
+    FragList( boolean merged )
+    {
+        this.merged = merged;
+        fragments = new ArrayList<Atom>();
+    }
+    /**
+     * Make this a nested fraglist
+     * @param value true if this fraglist is part of a nested table
+     */
+    void setNested( boolean value )
+    {
+        this.nested = value;
+    }
+    /**
+     * Add a fragment to the list
+     * @param kind the kind of fragment: aligned, merged etc
+     * @param frag the text of the fragment
+     * @param versions the set of versions sharing this fragment
+     */
+    void add( FragKind kind, String frag, BitSet versions )
+    {
+        Fragment f = new Fragment( kind, frag, versions );
+        add( f );   
+    }
+    /**
+     * Add a prepared atom to the list
+     * @param a an atom (table or fragment)
+     */
+    void add( Atom a )
+    {
+        fragments.add( a );
+    }
+    /**
+     * Add a fragment to the start of the list
+     * @param kind the kind of fragment: aligned, merged etc
+     * @param frag the text of the fragment
+     * @param versions  the set of versions sharing this fragment
+     */
+    void prepend( FragKind kind, String frag, BitSet versions )
+    {
+        Fragment f = new Fragment( kind, frag, versions );
+        prepend( f );   
+    }
+    /** 
+     * Ditto but with a prepared Atom
+     * @param a the existing Atom
+     */
+    void prepend( Atom a )
+    {
+        fragments.add( 0, a );
+    }
+    /**
+     * Set whether or not this fraglist contains the base version
+     * @param isBase 
+     */
+    void setBase( boolean isBase )
+    {
+        this.isBase = isBase;
+    }
+    /**
+     * Compute the set of versions shared by all Atoms in the list
+     * @return a BitSet
+     */
+    BitSet getShared()
+    {
+        BitSet bs = new BitSet();
+        for ( int i=0;i<fragments.size();i++ )
+        {
+            Atom a = fragments.get( i );
+            if ( bs.cardinality()==0 ) 
+                bs.or( a.versions );
+            else
+                bs.and( a.versions );
+        }
+        return bs;
+    }
+    @Override
+    public Object clone()
+    {
+        FragList copy = new FragList();
+        for ( int i=0;i<fragments.size();i++ )
+            copy.add( fragments.get(i) );
+        copy.editScript = editScript;
+        copy.isBase = this.isBase;
+        copy.merged = this.merged;
+        copy.nested = this.nested;
+        return copy;
+    }
+    void printList( ArrayList<Version> sigla )
+    {
+        for ( int j=0;j<fragments.size();j++ )
+        {
+            Atom a = fragments.get( j );
+            if ( a instanceof Fragment )
+            {
+                Fragment f = (Fragment)a;
+                System.out.println(Utils.bitSetToString(sigla,f.versions)
+                    +" \""+f.contents+"\"" );
+            }
+        }
+    }
+    /**
+     * Convert the fraglist to formatted HTML 
+     */
+    @Override
+    public String toString()
+    {
+        TableCell tc = new TableCell("td", null);
+        String className = null;
+        if ( isBase && nested )
+            className = "base";
+        for ( int i=0;i<fragments.size();i++ )
+        {
+            Atom a = fragments.get(i);
+            if ( className == null && a instanceof Fragment )
+                className = ((Fragment)a).getClassName();
+            if ( a instanceof Fragment )
+                tc.add( ((Fragment)a).contents, className );
+            else
+                tc.add( a.toString() );
+            // reset
+            if ( className != null && !className.equals("base") )
+                className = null;
+        }
+        return tc.toString();
+    }
+    /**
+     * Is the textual content of the two fraglists identical? Two fraglists 
+     * are also identical if one or the other is base and the other is 
+     * aligned with it.
+     * @param obj the other frag list
+     * @return true if the text is the same else false
+     */
+    public boolean equals( Object obj )
+    {
+        if ( obj instanceof FragList )
+        {
+            FragList fl = (FragList)obj;
+            if ( (fl.isBase && merged) || (fl.merged && isBase) )
+                return true;
+            else if ( fl.fragments.size()==fragments.size() )
+            {
+                for ( int i=0;i<fragments.size();i++ )
+                {
+                    Atom f1 = fragments.get(i);
+                    Atom f2 = fl.fragments.get(i);
+                    if ( f1!=null&&f2!=null )
+                    {
+                        if ( !f1.equals(f2) )
+                            return false;
+                    }
+                    else if ( f1==null&&f2==null )
+                        continue;
+                    else
+                        return false;
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+    /**
+     * For convenience this is a method
+     * @param a the first of two to compare
+     * @param b the second
+     * @return the greater of a and b
+     */
+    int max( int a, int b )
+    {
+        return (a>b)?a:b;
+    }
+    /**
+     * We can only be finished if both x and y are 1 past the maximum
+     * @param x the x coordinate
+     * @param y the y coordinate
+     * @param fl the other frag list
+     * @return true if it is finished
+     */
+    boolean finished( int x, int y, FragList fl )
+    {
+        return x==fl.fragments.size()&&y==fragments.size();
+    }
+    /**
+     * Calculate similarity between 2 fraglists using diagonalisation
+     * @param fl the other fragment list to compare to
+     * @return its similarity as a percentage
+     */
+    float similarity( FragList fl )
+    {
+        // first cell may match
+        int x = snake(0,0,fl);
+        int y = x;
+        int D = 0;
+        boolean ended = finished( x, y, fl );
+        if ( !ended )
+        {
+            HashSet<Integer> updated = new HashSet<Integer>();
+            HashMap<Integer,Step> V = new HashMap<Integer,Step>();
+            if ( x > 0 )
+                V.put( 0, new Step(null,FragKind.merged,x) );
+            else
+                V.put( 0, new Step(null,FragKind.empty,x) );
+            while ( !ended )
+            {
+                Set<Integer> keys = V.keySet();
+                Integer[] diagonals = new Integer[keys.size()];
+                updated.clear();
+                keys.toArray( diagonals );
+                for ( int i=0;i<diagonals.length;i++ )
+                {
+                    int k = diagonals[i].intValue();
+                    Step kParent = V.get(k);
+                    if ( !updated.contains(k) )
+                    {
+                        x = V.get(k).x;
+                        y = x-k;
+                        // exchange
+                        if ( x < fl.fragments.size() && y < fragments.size() )
+                        {
+                            int newx = snake(x+1,y+1,fl);
+                            int newy = newx-k;
+                            ended=finished(newx,newy,fl);
+                            updated.add( k );
+                            Step s = V.get(k);
+                            if ( s != null )
+                                s = s.update(FragKind.exchanged,newx);
+                            else
+                                s = new Step(null,FragKind.exchanged,newx);
+                            V.put( k, s );
+                        }
+                        // insert
+                        if ( !ended && x < fl.fragments.size() )
+                        {
+                            int newx = snake( x+1, y, fl );
+                            ended=finished(newx,newx-(k+1),fl);
+                            Step s = V.get(k+1);
+                            if ( s == null || s.x < newx )
+                            {
+                                s = kParent.update(FragKind.inserted,newx);
+                                updated.add( k+1 );
+                            }
+                            V.put( k+1, s );
+                        }
+                        // delete
+                        if ( !ended && y < fragments.size() )
+                        {
+                            int newx = snake(x,y+1,fl);
+                            ended=finished(newx,newx-(k-1),fl);
+                            Step s = V.get(k-1);
+                            if ( s == null || s.x < newx )
+                            {
+                                s = kParent.update(FragKind.deleted,newx);
+                                updated.add( k-1 );
+                            }
+                            V.put( k-1, s );
+                        }
+                        if ( ended )
+                            break;
+                    }
+                }
+                D++;
+            }
+            editScript = V.get( fl.fragments.size()-fragments.size() );
+        }
+        else
+            editScript = new Step(null, FragKind.merged, x );
+        //System.out.println("diff="+D+"\n"+editScript);
+        float d = (float)D;
+        float maxSize = max(fragments.size(),fl.fragments.size());
+        return (maxSize-d)/maxSize;
+    }
+    /**
+     * How far can we extend x by matching fragments?
+     * @param x the current x value
+     * @param y the current y value
+     * @param fl the other fraglist we are comparing to
+     * @return a new x value never greater than fl.fragments.size()
+     */
+    int snake( int x, int y, FragList fl )
+    {
+        while ( x<fl.fragments.size()&&y<fragments.size() )
+        {
+            if ( fragments.get(y).equals(fl.fragments.get(x)) )
+            {
+                x++;
+                y++;
+            }
+            else
+                break;
+        }
+        return x;
+    }
+    /**
+     * Is this fraglist empty?
+     * @return true if it is
+     */
+    boolean isEmpty()
+    {
+        return fragments.isEmpty();
+    }
+    /**
+     * Create a table if not one does not already exist
+     * @param table the input table to check if it exists
+     * @param versions the sigla needed by the table
+     * @param base the base version of the new table
+     * @param bs versions to which this table must be constrained
+     * @return the new table or the old one
+     */
+    Table updateTable( Table table, ArrayList<Version> versions, short base, 
+        BitSet bs )
+    {
+        if ( table == null )
+        {
+            table = new Table( bs, versions, base );
+            table.setNested( true );
+        }
+        return table;         
+    }
+    /**
+     * The base of a sub-table is the first version of the union of the 
+     * two shared version sets
+     * @param a the shared versions from the first list
+     * @param b the shared versions from the second list
+     * @return the base version
+     */
+    short computeBase( BitSet a, BitSet b )
+    {
+        a.or( b );
+        return (short)a.nextSetBit(0);
+    }
+    /**
+     * Create an empty fragment for an insert/delete pair
+     * @param kind the kind: insert or delete
+     * @param bs the versions of the empty frag
+     * @param constraint constrain versions to this set
+     * @param not the versions of the non-empty fragment in parellel to this
+     * @return the empty fragment
+     */
+    Fragment emptyFrag( FragKind kind, BitSet bs, BitSet constraint, BitSet not )
+    {
+        bs.andNot( not );
+        bs.and( constraint );
+        if ( bs.isEmpty() )
+            System.out.println("bs is empty");
+        return new Fragment(kind,"", bs);
+    }
+    /**
+     * Merge two fraglists for real by comparing them and creating an embedded 
+     * table in the middle
+     * @param fl the other fraglist
+     * @param sigla the descriptions of the versions
+     * @param constraint nested tables must belong to these versions only
+     */
+    private void mergeByAtom( FragList fl, ArrayList<Version> sigla, 
+        BitSet constraint ) throws Exception
+    {
+        Stack<Step> stack = new Stack<Step>();
+        int x,y;
+        Table table = null;
+        // reverse editScript using a stack
+        Step temp = editScript;
+        while ( temp != null )
+        {
+            stack.push( temp);
+            temp = temp.parent;
+        }
+        // x indexes into fl.fragments, y into fragments
+        x = y = 0;
+        Atom a,b;
+        BitSet bs;
+        ArrayList<Atom> mergedFrags = new ArrayList<Atom>();
+        while ( !stack.isEmpty() )
+        {
+            Step s = stack.pop();
+            switch ( s.kind )
+            {
+                case inserted:
+                    table = updateTable( table, sigla, 
+                        (short)fl.getShared().nextSetBit(0), constraint );
+                    a = fl.fragments.get(x++);
+                    a.kind = FragKind.inserted;
+                    b = emptyFrag( FragKind.deleted, getShared(), 
+                        constraint, a.versions );
+                    table.assignToRow( a );
+                    table.assignToRow( b );
+                    if ( table.rows.size()!=2 )
+                       System.out.println("Table size != 2");
+                    break;
+                case deleted:
+                    table = updateTable( table, sigla, 
+                        (short)getShared().nextSetBit(0), constraint );
+                    a = fragments.get(y++);
+                    a.kind = FragKind.deleted;
+                    b = emptyFrag( FragKind.inserted, fl.getShared(), 
+                        constraint, a.versions );
+                    table.assignToRow( a );
+                    table.assignToRow( b );
+                    if ( table.rows.size()!=2 )
+                       System.out.println("Table size != 2");
+                    break;
+                case exchanged:
+                    a = fl.fragments.get(x++);
+                    a.kind = FragKind.inserted;
+                    b = fragments.get(y++);
+                    b.kind = FragKind.deleted;
+                    bs = fl.getShared();
+                    bs.or( getShared() );
+                    bs.and( constraint );
+                    table = updateTable( table, sigla, 
+                        (short)bs.nextSetBit(0), bs );
+                    table.assignToRow( a );
+                    table.assignToRow( b );
+                    if ( a.versions.intersects(b.versions) )
+                        System.out.println("versions conflict");
+                    if ( table.rows.size()!=2 )
+                       System.out.println("Table size != 2");
+                    break;
+                case merged:
+                    if ( table != null )
+                    {
+                        mergedFrags.add(table);
+                        table = null;
+                    }
+                    while ( x < s.x )
+                    {
+                        Atom f1 = fragments.get(y++);
+                        Atom f2 = fl.fragments.get(x++);
+                        mergedFrags.add(f1.merge(f2));
+                    }
+                    break;
+                case empty:
+                    break;
+            }
+        }
+        if ( table != null )
+            mergedFrags.add(table);
+        this.fragments = mergedFrags;
+    }
+    /**
+     * Merge two fraglists by just putting into separate rows of a table
+     * @param fl the other fraglist
+     * @param sigla the descriptions of the versions
+     * @param constraint nested tables must belong to these versions only
+     */
+    private void mergeAsTable( FragList fl, ArrayList<Version> sigla, 
+        BitSet constraint ) throws Exception
+    {
+        short base = (short)constraint.nextSetBit(0);
+        Table table = new Table( constraint, sigla, base );
+        table.setNested( true );
+        BitSet bs1 = getShared();
+        bs1.and( constraint );
+        BitSet bs2 = fl.getShared();
+        bs2.and( constraint );
+        bs1.andNot( bs2 );
+        bs2.andNot( bs1 );
+        // construct rows
+        Row r = new Row( bs1, sigla, base );
+        r.setNested( true );
+        FragList copy1 = (FragList)this.clone();
+        FragList copy2 = (FragList)fl.clone();
+        if ( bs1.nextSetBit(base)==base )
+            copy1.setBase( true );
+        else
+            copy2.setBase( true );
+        r.add( copy1 );
+        Row s = new Row( bs2, sigla, base );
+        s.setNested( true );
+        s.add( copy2 );
+        table.addRow( r );
+        table.addRow( s );
+        if ( table.rows.size() != 2 )
+            System.out.println();
+        this.fragments.clear();
+        this.fragments.add( table );
+        if ( r.versions==null||r.versions.isEmpty() )
+            System.out.println("row versions are empty");
+        if ( s.versions==null||s.versions.isEmpty() )
+            System.out.println("row versions are empty");
+    }
+    /**
+     * Merge one fraglist with another
+     * @param fl the other fraglist
+     * @param sigla the descriptions of the versions
+     * @param constraint nested tables must belong to these versions only
+     */
+    void merge( FragList fl, ArrayList<Version> sigla, BitSet constraint ) 
+        throws Exception
+    {
+        if ( !fl.isEmpty() && isEmpty() )
+            this.fragments = fl.fragments;
+        else if ( !fl.isEmpty() && !isEmpty() )
+        {
+            // ensure that the edit script is fresh
+            float sim = similarity( fl );
+            if ( sim >= Atom.THRESHOLD_SIM )
+                mergeByAtom( fl, sigla, constraint);
+            else
+                mergeAsTable( fl, sigla, constraint );
+        }
+    }
+    /**
+     * Get the text up to the next space or the end of the list
+     * @return a String bounded on the right by a space
+     */
+    String getToNextBreakPoint( String value )
+    {
+        int spacePos = indexOfBreakPoint( value );
+        if ( spacePos == -1 )
+            return value;
+        else
+        return value.substring(0,spacePos);
+    }
+    int indexOfBreakPoint( String src )
+    {
+        for ( int i=0;i<src.length();i++ )
+            if ( !Character.isLetter( src.charAt(i) ) )
+                return i;
+        return -1;
+    }
+    int lastIndexOfBreakPoint( String src )
+    {
+        for ( int i=src.length()-1;i>=0;i-- )
+            if ( !Character.isLetter( src.charAt(i) ) )
+                return i+1;
+        return -1;
+    }
+    /**
+     * Get the last token bounded by a space or the whole list if not
+     * @return a String
+     */
+    private String getToPrevBreakPoint( String value )
+    {
+        int spacePos = lastIndexOfBreakPoint(value);
+        if ( spacePos == -1 )
+            return value;
+        else
+            return value.substring(spacePos);
+    }
+    /**
+     * Make sure we don't expand the same text twice into the adjacent 
+     * merged cell
+     * @param token the token to be extended to
+     * @param mergedCell the full contents of the original merged cell
+     * @param cell the cell to test for doubling up
+     * @return true if doubling up would occur
+     */
+    boolean doubledUp( String token, String mergedCell, FragList cell )
+    {
+        if ( token.equals(mergedCell) )
+        {
+            if ( cell.fragments.size()==1 )
+            {
+                Atom a = cell.fragments.get(0);
+                if ( a instanceof Fragment )
+                {
+                    Fragment f = (Fragment)a;
+                    if ( f.contents!=null&&f.contents.equals(token) )
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+    /**
+     * Extend the merged cell fl on our left from our cell
+     * @param prev a merged cell to our left
+     * @param mergedCell the merged cell's full contents
+     * @param base the base version of the merged cell
+     */
+    void extendLeft( FragList prev, String mergedCell, short base )
+    {
+        // find the next space in the merged cell
+        String token = getToPrevBreakPoint( mergedCell );
+        if ( !doubledUp(token,mergedCell,prev) && token.length() > 0 
+            && fragments.size()>0 )
+        {
+            Atom first = this.fragments.get(0);
+            if ( !first.startsWithBreakPoint() )
+            {
+                Fragment f2 = new Fragment( FragKind.aligned, 
+                    token, getShared() );
+                f2.setStyle( "right" );
+                // add the extended fraglist to the merged section
+                if ( !prev.isEmpty() )
+                {
+                    for ( int i=0;i<prev.fragments.size();i++ )
+                    {
+                        Atom a = prev.fragments.get(i);
+                        if ( a instanceof Fragment )
+                        {
+                            Fragment g = (Fragment) a;
+                            if ( g.style==null )
+                                return;
+                        }
+                    }
+                    prev.add( f2 );
+                }
+                else
+                    prev.add( f2 );
+            }
+        }
+    }
+    /**
+     * Extend the merged s on our right using our section
+     * @param next the next cell which should be merged
+     * @param mergedCell the merged cell contents to our right
+     * @param base the base version of the merged section
+     */
+    void extendRight( FragList next, String mergedCell, short base )
+    {
+        // find the next space in the merged cell
+        String token = getToNextBreakPoint( mergedCell );
+        if ( token!=null&&token.equals(".") )
+            System.out.println(".");
+        if ( !doubledUp(token,mergedCell,next) && token.length() > 0 
+            && fragments.size()>0 )
+        {
+            Atom last = fragments.get(fragments.size()-1);
+            if ( !last.endsWithBreakPoint() )
+            {
+                Fragment f2 = new Fragment( FragKind.aligned, 
+                    token, getShared() );
+                f2.setStyle( "left" );
+                // add the extended fraglist to the merged section
+                if ( !next.isEmpty() )
+                {
+                    for ( int i=0;i<next.fragments.size();i++ )
+                    {
+                        Atom a = next.fragments.get(i);
+                        if ( a instanceof Fragment )
+                        {
+                            Fragment g = (Fragment) a;
+                            if ( g.style==null )
+                                return;
+                        }
+                    }
+                    next.fragments.add( 0, f2 );
+                }
+                else
+                    next.add( f2 );
+            }
+        }
+    }
+    /**
+     * For testing
+     * @param args unused
+     */
+    public static void main( String[] args )
+    {
+        try
+        {
+            FragList fl1 = new FragList();
+            FragList fl2 = new FragList();
+            BitSet bs = new BitSet();
+            ArrayList<Version> vt = new ArrayList<Version>();
+            fl1.add( FragKind.aligned, "banana", bs );
+            fl2.add( FragKind.inserted, "banana", bs );
+            fl1.add( FragKind.aligned, "apple", bs );
+            fl2.add( FragKind.inserted, "pear", bs );
+            fl1.add( FragKind.aligned, "mango", bs );
+            fl2.add( FragKind.inserted, "mango", bs );
+            fl1.add( FragKind.aligned, "grape", bs );
+            fl2.add( FragKind.inserted, "grape", bs );
+            fl1.add( FragKind.aligned, "orange", bs );
+            fl2.add( FragKind.inserted, "lemon", bs );
+            fl1.add( FragKind.aligned, "mandarin", bs );
+            fl2.add( FragKind.inserted, "cumquat", bs );
+            float percent = fl1.similarity(fl2);
+            fl1.merge( fl2, vt, bs );
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace( System.out );
+        }
+    }
+}
