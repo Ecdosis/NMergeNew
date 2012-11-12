@@ -157,11 +157,13 @@ public class Table extends Atom
             String id = RandomId.getId( 32 );
             sb.append(" id=\"");
             sb.append( id );
-            sb.append("\" onclick=\"toggle('");
+            sb.append("\" data-toggleid=\"");
             sb.append( id );
-            sb.append( "')\" class=\"inline\"");
+            sb.append( "\" class=\"inline\"");
         }
         sb.append(">");
+        // print out the rows
+        // ensure base version is at bottom
         for ( int i=0;i<rows.size();i++ )
         {
             Row r = rows.get(i);

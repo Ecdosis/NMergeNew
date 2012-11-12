@@ -19,7 +19,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package edu.luc.nmerge.mvd;
-import java.util.Vector;
+import java.util.ArrayList;
 import edu.luc.nmerge.exception.*;
 import java.io.UnsupportedEncodingException;
 /**
@@ -149,4 +149,31 @@ public class Version extends Serialiser
 		return "shortName:"+shortName+";longName:"+longName
 			+";group:"+group+";backup:"+backup;
 	}
+    /**
+     * Get the full path version ID (shortname preceded by /-delimited 
+     * path of all groups leading to it)
+     * @param groups the group table
+     * @return a unique full path to the version
+     */
+    public String versionID( ArrayList<Group> groups )
+    {
+        StringBuilder sb = new StringBuilder();
+        Group g = null;
+        sb.append( shortName );
+        if ( group != 0 )
+            g = groups.get( group-1 );
+        while ( g != null )
+        {
+            sb.insert(0,"/");
+            sb.insert(0,g.name );
+            if ( g.parent != 0 )
+                g = groups.get( g.parent-1 );
+            else
+            {
+                sb.insert(0,"/");
+                g = null;
+            }
+        }
+        return sb.toString();
+    }
 }

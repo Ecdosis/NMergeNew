@@ -153,6 +153,7 @@ class Row
             sb.append("><td class=\"siglumhidden\">");
         else
             sb.append("><td class=\"siglum\">");
+        // write siglum
         sb.append( Utils.bitSetToString(sigla,versions) );
         sb.append("</td>");
         for ( int i=0;i<cells.size();i++ )

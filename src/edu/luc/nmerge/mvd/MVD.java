@@ -21,10 +21,8 @@
 package edu.luc.nmerge.mvd;
 import edu.luc.nmerge.mvd.diff.Diff;
 import java.util.*;
-import java.io.FileWriter;
 import java.io.UnsupportedEncodingException;
 import java.io.Serializable;
-import java.io.FileInputStream;
 import java.io.File;
 
 import edu.luc.nmerge.graph.Graph;
@@ -626,6 +624,30 @@ public class MVD extends Serialiser implements Serializable
 			g.setName( groupName);
 		}
 	}
+    /**
+     * Get the full group path leading to a version
+     * @param vId the version id
+     * @return a String
+     */
+    public String getGroupPath( short vId )
+    {
+        StringBuilder sb = new StringBuilder();
+        do
+        {
+            Version v = versions.get(vId-1);
+            if ( v.group != Group.TOP_LEVEL )
+            {
+                Group g = groups.get( v.group-1 );
+                sb.insert( 0, g.name );
+                sb.insert( 0, "/" );
+                vId = g.parent;
+            }
+            else
+                break;
+        }
+        while ( vId > 0 );
+        return sb.toString();
+    }
 	/**
 	 * Set the parent of the given group
 	 * @param groupId the id of the group to change
@@ -1258,6 +1280,20 @@ public class MVD extends Serialiser implements Serializable
 				removeVersion( array[i].intValue() );
 		}
 	}
+     /**
+     * For comparison we need the next version after one we specify
+     * @param v1 the first version
+     * @return the next version as a default comparison
+     */
+    public int getNextVersionId( short v1 )
+    {
+        if ( v1 < versions.size() )
+            return v1+1;
+        else if ( versions.size()>1 )
+            return 1;
+        else
+            return v1;
+    }
 	/**
 	 * Get the long name for the given version
 	 * @param versionId the id of the version
@@ -1619,7 +1655,7 @@ public class MVD extends Serialiser implements Serializable
 	 * one version id-1 and the values are the lengths of that 
 	 * version
 	 */
-	int[] getVersionLengths()
+	public int[] getVersionLengths()
 	{
 		int[] lengths = new int[versions.size()];
 		for ( int i=0;i<pairs.size();i++ )
@@ -2384,7 +2420,7 @@ public class MVD extends Serialiser implements Serializable
         do
         {
             p = pairs.get( i );
-            if ( pos+p.length() <= distance )
+            if ( pos+p.length() < distance )
             {
                 pos += p.length();
                 int oldi = i;
@@ -2396,8 +2432,11 @@ public class MVD extends Serialiser implements Serializable
                 }
             }
             else
+            {
                 ePos = new PairPos( i, distance-pos, sPos.getBase() );
-        } while ( pos+p.length() < distance );
+                break;
+            }
+        } while ( pos < distance );
         return ePos;
     }
 	/**
@@ -2504,34 +2543,17 @@ public class MVD extends Serialiser implements Serializable
             {
                 Version v = versions.get( i );
                 map.put( v.shortName, (short)(i+1) );
+                map.put( v.versionID(groups), (short)(i+1) );
             }
             StringTokenizer st = new StringTokenizer(spec,",");
             while ( st.hasMoreTokens() )
             {
                 String token = st.nextToken();
-                String shortName = "";
-                String path = "";
-                int rPos = token.lastIndexOf("/");
-                if ( rPos == -1 )
-                {
-                    shortName = token;
-                    if ( map.containsKey(shortName) )
-                        set.set( map.get(shortName).shortValue() );
-                    else
-                        System.out.println("couldn't find version "
-                            +shortName);
-                }
+                if ( map.containsKey(token) )
+                    set.set( map.get(token).shortValue() );
                 else
-                {
-                    shortName = token.substring(rPos+1);
-                    path = token.substring(0,rPos);
-                    int k = getVersionByNameAndGroup( path, shortName );
-                    if ( k != -1 )
-                        set.set( k );
-                    else
-                        System.out.println("couldn't find version "+token
-                            +" (ignored)");
-                }
+                    System.out.println("couldn't find version "+token
+                        +" (ignored)");
             }
         }
         return set;
@@ -2572,7 +2594,6 @@ public class MVD extends Serialiser implements Serializable
             PairPos sPos = new PairPos( index, 0, base );
             sPos = getPairPos( sPos, start );
             PairPos ePos = getPairPos( sPos, len );
-            int length = 0;
             BitSet bs = convertVersions( spec );
             BitSet found = new BitSet();
             for ( int i=sPos.getIndex();i<=ePos.getIndex();i++ )
@@ -2596,6 +2617,7 @@ public class MVD extends Serialiser implements Serializable
                 Pair p = pairs.get( i );
                 if ( p.length()>0 )
                 {
+                    int deleted = 0;
                     byte[] data = p.getData();
                     if ( i == sPos.getIndex() )
                     {
@@ -2604,14 +2626,16 @@ public class MVD extends Serialiser implements Serializable
                         System.arraycopy( data, sPos.getPosition(), 
                             dCopy, 0, size ); 
                         data = dCopy;
+                        deleted = sPos.getPosition();
                     }
                     if ( i == ePos.getIndex() )
                     {
-                        int del = data.length-(p.length()-ePos.getPosition());
-                        if ( data.length-del < 0 )
+                        int del = (deleted+data.length)-ePos.getPosition();
+                        int remaining = data.length-del;
+                        if ( remaining < 0 )
                             throw new Exception("size of range was < 0");
-                        byte[] eCopy = new byte[data.length-del];
-                        System.arraycopy( data, 0, eCopy, 0, data.length-del );
+                        byte[] eCopy = new byte[remaining];
+                        System.arraycopy( data, 0, eCopy, 0, remaining );
                         data = eCopy;
                     }
                     String frag = new String(data,encoding);
@@ -2633,5 +2657,34 @@ public class MVD extends Serialiser implements Serializable
             e.printStackTrace( System.out );
             return "";
         }
+    }
+    /**
+     * Test table building
+     * @param args one: the name of an MVD file
+     */
+    public static void main( String[] args )
+    {
+        try
+        {
+            if ( args.length==1 )
+            {
+                File src = new File( args[0] );
+                MVD mvd = MVDFile.internalise( src, null );
+                if ( mvd != null )
+                {
+                    String tView = mvd.getTableView( (short)6, 0, 10000, 
+                    false, false, true, "/Base/F1,/Base/F2,/Base/Q2" );
+                    System.out.println(tView);
+                }
+                else
+                    System.out.println("failed to load mvd");
+            }
+            else
+                System.out.println("specify an MVD file name");
+        }
+        catch ( Exception e )
+        {
+        }
+        
     }
 }
