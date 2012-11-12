@@ -161,7 +161,10 @@ public class Version extends Serialiser
         Group g = null;
         sb.append( shortName );
         if ( group != 0 )
-            g = groups.get( group-1 );
+        {
+            int index = group-1;
+            g = groups.get( index );
+        }
         while ( g != null )
         {
             sb.insert(0,"/");
