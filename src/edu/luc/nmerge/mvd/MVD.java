@@ -2528,7 +2528,7 @@ public class MVD extends Serialiser implements Serializable
      * @param spec the version spec
      * @return a bitset with all specified versions set
      */
-    private BitSet convertVersions( String spec )
+    public BitSet convertVersions( String spec )
     {
         BitSet set = new BitSet();
         if ( spec.toLowerCase().equals("all") )
@@ -2580,11 +2580,12 @@ public class MVD extends Serialiser implements Serializable
      * @param hideMerged display only base version in merged sections
      * @param wholeWords expand differences to whole words
      * @param spec a specification of a comma-separated set of versions
+     * @param firstID ID of the first merged text ID
      * @return a HTML fragment 
      */
     public String getTableView( short base, int start, int len, 
         boolean compact, boolean hideMerged, boolean wholeWords,
-        String spec )
+        String spec, int firstID )
     {
         try
         {
@@ -2610,6 +2611,7 @@ public class MVD extends Serialiser implements Serializable
             options.put(Options.COMPACT,compact);
             options.put(Options.HIDE_MERGED,hideMerged);
             options.put(Options.WHOLE_WORDS,wholeWords);
+            options.put(Options.FIRST_MERGEID,firstID);
             TableView view = new TableView( this.versions, base, found, 
                 options );
             for ( int i=sPos.getIndex();i<=ePos.getIndex();i++ )
@@ -2646,7 +2648,7 @@ public class MVD extends Serialiser implements Serializable
                         view.addFragment( FragKind.merged, found, frag );
                     else if ( p.versions.nextSetBit(base) != base )
                         view.addFragment( FragKind.inserted, set, frag );
-                    else 
+                    else // aligned with base
                         view.addFragment( FragKind.aligned, set, frag );
                 }
             }
@@ -2673,7 +2675,7 @@ public class MVD extends Serialiser implements Serializable
                 if ( mvd != null )
                 {
                     String tView = mvd.getTableView( (short)6, 0, 10000, 
-                    false, false, true, "/Base/F1,/Base/F2,/Base/Q2" );
+                    false, false, true, "/Base/F1,/Base/F2,/Base/Q2",111 );
                     System.out.println(tView);
                 }
                 else

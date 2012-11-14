@@ -14,12 +14,22 @@ public class TableCell
     String className;
     String currentTextClass;
     StringBuilder sb;
+    /** optional id of cell contents if not 0 */
+    int id;
     
     TableCell( String tagName, String className )
     {
         this.tagName= tagName;
         this.className = className;
         this.sb = new StringBuilder();
+    }
+    /**
+     * This is set during table writing only
+     * @param id the id for the cell contents
+     */
+    void setID( int id )
+    {
+        this.id = id;
     }
     /**
      * Convert contents to a simple string
@@ -47,6 +57,16 @@ public class TableCell
             pos += 8;
             sb.insert( pos, className );
             pos += className.length();
+            sb.insert( pos, "\"" );
+            pos++;
+        }
+        if ( id != 0 )
+        {
+            sb.insert( pos, " id=\"t" );
+            pos += 6;
+            String idStr = Integer.toString(id);
+            sb.insert( pos, idStr );
+            pos += idStr.length();
             sb.insert( pos, "\"" );
             pos++;
         }

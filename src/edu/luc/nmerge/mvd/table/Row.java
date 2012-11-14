@@ -20,6 +20,10 @@ class Row
     short base;
     /** true if this row is part of a nested table */
     boolean nested;
+    /**
+     * id of first table cell
+     */
+    int id;
     Row( BitSet versions, ArrayList<Version> sigla, short base )
     {
         this.versions = (BitSet)versions.clone();
@@ -41,6 +45,14 @@ class Row
     void setNested( boolean value )
     {
         this.nested = value;
+    }
+    /**
+     * Set the ID for printing
+     * @param id the first ID of the first base cell
+     */
+    void setID( int id )
+    {
+        this.id = id;
     }
     /**
      * Add an atom to the end of the list
@@ -159,6 +171,9 @@ class Row
         for ( int i=0;i<cells.size();i++ )
         {
             FragList fl = cells.get(i);
+            BitSet shared = fl.getShared();
+            if ( shared.nextSetBit(base)==base&&id>0 )
+                fl.setID( id++ );
             sb.append( fl.toString() );
         }
         sb.append("</tr>");

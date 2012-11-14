@@ -17,6 +17,7 @@ public class Table extends Atom
     short base;
     /** Is this table nested inside another? */
     boolean nested;
+    int id;
     /**
      * Create a table    
      * @param bs the set of versions encompassed by this table
@@ -37,6 +38,14 @@ public class Table extends Atom
     void setNested( boolean value )
     {
         this.nested = value;
+    }
+    /**
+     * Set the id for printing
+     * @param id the first cell id of hte base row
+     */
+    void setID( int id )
+    {
+        this.id = id;
     }
     /**
      * Is one bitset the subset or equal to the second?
@@ -180,7 +189,11 @@ public class Table extends Atom
         if ( baseRow == -1 )
             System.out.println("base row not found!");
         else
-            sb.append( rows.get(baseRow).toString() );
+        {
+            Row br = rows.get(baseRow);
+            br.setID( id );
+            sb.append( br.toString() );
+        }
         sb.append("</table>");
         return sb.toString();
     }

@@ -12,5 +12,6 @@ public enum Options
 {
     COMPACT,
     HIDE_MERGED,
-    WHOLE_WORDS;
+    WHOLE_WORDS,
+    FIRST_MERGEID;
 }

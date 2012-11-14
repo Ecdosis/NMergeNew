@@ -28,6 +28,7 @@ public class TableView
     ArrayList<Section> sections;
     ArrayList<Version> sigla;
     EnumMap<Options,Object> options;
+    int firstID;
     /** all the versions we are considering */
     BitSet all;
     short base;
@@ -44,6 +45,8 @@ public class TableView
         this.sigla = sigla;
         this.base = base;
         this.options = options;
+        Integer id = (Integer)options.get(Options.FIRST_MERGEID);
+        this.firstID = id.intValue();
         this.all = all;
     }
     /**
@@ -226,6 +229,7 @@ public class TableView
             bs.or( rowSets[i] );
         }
         Table table = new Table( bs, sigla, base );
+        table.setID( this.firstID );
         for ( int i=0;i<sections.size();i++ )
         {
             Section s = sections.get( i );

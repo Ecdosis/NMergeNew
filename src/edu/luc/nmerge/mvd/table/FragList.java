@@ -30,6 +30,8 @@ public class FragList
     boolean merged;
     /** Is this fraglist part of a nested table? */
     boolean nested;
+    /** id for entire cell */
+    int id;
     /**
      * Create an empty frag list 
      */
@@ -37,6 +39,10 @@ public class FragList
     {
         fragments = new ArrayList<Atom>();
     }
+    /**
+     * Create a fraglist
+     * @param merged if true then it is merged
+     */
     FragList( boolean merged )
     {
         this.merged = merged;
@@ -49,6 +55,14 @@ public class FragList
     void setNested( boolean value )
     {
         this.nested = value;
+    }
+    /**
+     * Set the id in preparation for printing
+     * @param id the id of the current cell
+     */
+    void setID( int id )
+    {
+        this.id = id;
     }
     /**
      * Add a fragment to the list
@@ -161,6 +175,7 @@ public class FragList
             if ( className != null && !className.equals("base") )
                 className = null;
         }
+        tc.setID( id );
         return tc.toString();
     }
     /**
