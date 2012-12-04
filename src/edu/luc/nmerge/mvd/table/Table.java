@@ -18,6 +18,7 @@ public class Table extends Atom
     /** Is this table nested inside another? */
     boolean nested;
     int id;
+    String tableId;
     /**
      * Create a table    
      * @param bs the set of versions encompassed by this table
@@ -41,11 +42,19 @@ public class Table extends Atom
     }
     /**
      * Set the id for printing
-     * @param id the first cell id of hte base row
+     * @param id the first cell id of the base row
      */
     void setID( int id )
     {
         this.id = id;
+    }
+    /**
+     * Set the entire table's id
+     * @param tableId the id as a String
+     */
+    void setTableId( String tableId )
+    {
+        this.tableId = tableId;
     }
     /**
      * Is one bitset the subset or equal to the second?
@@ -163,13 +172,15 @@ public class Table extends Atom
         sb.append("<table");
         if ( nested )
         {
-            String id = RandomId.getId( 32 );
+            String localId = RandomId.getId( 32 );
             sb.append(" id=\"");
-            sb.append( id );
+            sb.append( localId );
             sb.append("\" data-toggleid=\"");
-            sb.append( id );
+            sb.append( localId );
             sb.append( "\" class=\"inline\"");
         }
+        else if ( tableId != null && tableId.length()>0 )
+            sb.append( " id=\""+tableId+"\"");
         sb.append(">");
         // print out the rows
         // ensure base version is at bottom

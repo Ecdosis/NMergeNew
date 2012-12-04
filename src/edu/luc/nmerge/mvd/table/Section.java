@@ -54,6 +54,8 @@ public class Section
      */
     void addFragSet( FragKind kind, BitSet bs, String frag )
     {
+        if ( kind == FragKind.merged )
+            this.merged = true;
         for (int i = bs.nextSetBit(1); i>= 0; 
                 i = bs.nextSetBit(i+1))
         {

@@ -13,5 +13,6 @@ public enum Options
     COMPACT,
     HIDE_MERGED,
     WHOLE_WORDS,
-    FIRST_MERGEID;
+    FIRST_MERGEID,
+    TABLE_ID;
 }

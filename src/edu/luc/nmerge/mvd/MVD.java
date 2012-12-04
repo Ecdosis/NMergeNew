@@ -1580,7 +1580,7 @@ public class MVD extends Serialiser implements Serializable
      * Get the version id of the named shortname and group-path
      * @param shortName the possibly ambiguous short name of the version
      * @param path to the group containing that version
-     * @return the version id, 1-based or 0
+     * @return the version id, 1-based or 0 if not found
      */
     public int getVersionByNameAndGroup( String shortName, String path )
     {
@@ -2585,7 +2585,7 @@ public class MVD extends Serialiser implements Serializable
      */
     public String getTableView( short base, int start, int len, 
         boolean compact, boolean hideMerged, boolean wholeWords,
-        String spec, int firstID )
+        String spec, int firstID, String tableId )
     {
         try
         {
@@ -2612,6 +2612,7 @@ public class MVD extends Serialiser implements Serializable
             options.put(Options.HIDE_MERGED,hideMerged);
             options.put(Options.WHOLE_WORDS,wholeWords);
             options.put(Options.FIRST_MERGEID,firstID);
+            options.put(Options.TABLE_ID,tableId);
             TableView view = new TableView( this.versions, base, found, 
                 options );
             for ( int i=sPos.getIndex();i<=ePos.getIndex();i++ )
@@ -2675,7 +2676,8 @@ public class MVD extends Serialiser implements Serializable
                 if ( mvd != null )
                 {
                     String tView = mvd.getTableView( (short)6, 0, 10000, 
-                    false, false, true, "/Base/F1,/Base/F2,/Base/Q2",111 );
+                    false, false, true, "/Base/F1,/Base/F2,/Base/Q2",1,
+                    "apparatus");
                     System.out.println(tView);
                 }
                 else

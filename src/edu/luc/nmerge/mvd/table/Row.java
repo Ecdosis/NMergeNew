@@ -171,8 +171,7 @@ class Row
         for ( int i=0;i<cells.size();i++ )
         {
             FragList fl = cells.get(i);
-            BitSet shared = fl.getShared();
-            if ( shared.nextSetBit(base)==base&&id>0 )
+            if ( fl.merged && fl.isBase )
                 fl.setID( id++ );
             sb.append( fl.toString() );
         }
