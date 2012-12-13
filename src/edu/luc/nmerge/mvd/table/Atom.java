@@ -16,4 +16,5 @@ public abstract class Atom
     abstract Atom merge( Atom other ) throws Exception;
     abstract boolean startsWithBreakPoint();
     abstract boolean endsWithBreakPoint();
+    abstract String getContents();
 }

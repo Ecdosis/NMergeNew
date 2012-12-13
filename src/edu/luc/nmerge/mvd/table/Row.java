@@ -16,7 +16,7 @@ class Row
     ArrayList<Version> sigla;
     /** Set of versions represented by all fraglists in this row (ANDed) */
     BitSet versions;
-    /** the base version which we may not contain */
+    /** the base version which we might not contain */
     short base;
     /** true if this row is part of a nested table */
     boolean nested;
@@ -125,15 +125,18 @@ class Row
         float sim = similarity( r );
         if ( sim >= Atom.THRESHOLD_SIM )
         {
-            System.out.println("Merging "+Utils.bitSetToString(sigla,versions)
-                +" with "+Utils.bitSetToString(sigla,r.versions)+" sim="+sim);
-            this.versions.or( r.versions );
+            //System.out.println("Merging "+Utils.bitSetToString(sigla,versions)
+            //    +" with "+Utils.bitSetToString(sigla,r.versions)+" sim="+sim);
+            BitSet constraint = new BitSet();
+            constraint.or( this.versions );
+            constraint.or( r.versions );
             for ( int i=0;i<cells.size();i++ )
             {
                 FragList fl1 = cells.get(i);
                 FragList fl2 = r.cells.get(i);
-                fl1.merge(fl2,sigla,this.versions);
+                fl1.merge(fl2,sigla,constraint);
             }
+            this.versions.or( r.versions );
             return true;
         }
         else
@@ -166,7 +169,8 @@ class Row
         else
             sb.append("><td class=\"siglum\">");
         // write siglum
-        sb.append( Utils.bitSetToString(sigla,versions) );
+        String versionsString = Utils.bitSetToString(sigla,versions);
+        sb.append( versionsString );
         sb.append("</td>");
         for ( int i=0;i<cells.size();i++ )
         {
@@ -200,5 +204,16 @@ class Row
             }
         }
         return false;
+    }
+    /**
+     * Debug: get contents of row
+     * @return a String
+     */
+    String getContents()
+    {
+        StringBuilder sb = new StringBuilder();
+        for ( int i=0;i<cells.size();i++ )
+            sb.append( cells.get(i).getContents() );
+        return sb.toString();
     }
 }

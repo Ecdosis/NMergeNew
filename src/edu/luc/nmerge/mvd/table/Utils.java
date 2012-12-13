@@ -39,4 +39,22 @@ public class Utils
             return "";
         }
     }
+    /**
+     * Adjust two bitsets so that they do not overlap
+     * @param bs1 the first bitset
+     * @param bs2 the second bitset
+     */
+    public static void ensureExclusivity( BitSet bs1, BitSet bs2 )
+    {
+        if ( bs1.cardinality()>bs2.cardinality() )
+        {
+            bs1.andNot( bs2 );
+            bs2.andNot( bs1 );
+        }
+        else
+        {
+            bs2.andNot( bs1 );
+            bs1.andNot( bs2 );
+        }
+    }
 }

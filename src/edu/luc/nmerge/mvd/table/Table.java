@@ -119,8 +119,8 @@ public class Table extends Atom
             // contraint it to the versions of the table
             r.versions.and( this.versions );
             addRow( r );
-            System.out.println("Created row "+Utils.bitSetToString(sigla,
-                r.versions));
+            //System.out.println("Created row "+Utils.bitSetToString(sigla,
+            //    r.versions));
             if ( r.versions==null || r.versions.isEmpty() )
                 System.out.println("row versions are empty");
         }
@@ -174,8 +174,6 @@ public class Table extends Atom
         {
             String localId = RandomId.getId( 32 );
             sb.append(" id=\"");
-            sb.append( localId );
-            sb.append("\" data-toggleid=\"");
             sb.append( localId );
             sb.append( "\" class=\"inline\"");
         }
@@ -435,4 +433,39 @@ public class Table extends Atom
         }
         return false;
     }
+    /**
+     * Debug: check that the row versions are exclusive
+     * @return true if it was OK, false if it was not
+     */
+    boolean checkRowVersions()
+    {
+        BitSet bs = new BitSet();
+        for ( int i=0;i<rows.size();i++ )
+        {
+            Row r = rows.get(i);
+            if ( bs.intersects(r.versions) )
+            {
+                System.out.println("Overlapping version in row "
+                    +Utils.bitSetToString(sigla,r.versions));
+                return false;
+            }
+            bs.or( r.versions );
+        }
+        return true;
+    }
+    /**
+     * Get the contents of this thing
+     * @return the text
+     */
+    public String getContents()
+    {
+        StringBuilder sb = new StringBuilder();
+        for ( int i=0;i<rows.size();i++ )
+        {
+            Row r = rows.get(i);
+            sb.append( r.getContents() );
+        }
+        return sb.toString();
+    }
+    
 }

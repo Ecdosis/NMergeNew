@@ -42,6 +42,14 @@ class Fragment extends Atom
         return value;
     }
     /**
+     * Get the contents of this thing
+     * @return the text
+     */
+    public String getContents()
+    {
+        return contents;
+    }
+    /**
      * Two fragments are equals only if their contents are
      * @param f the other fragment or some other atom
      * @return true if the contents match else false

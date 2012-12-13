@@ -2662,6 +2662,118 @@ public class MVD extends Serialiser implements Serializable
         }
     }
     /**
+     * Create a substring around a given offset
+     * @param text the text source
+     * @param i the offset
+     * @return the substring
+     */
+    private static String around( String text, int i )
+    {
+        if ( i-20 > 0 )
+            return text.substring( i-20, i+20 );
+        else
+            return text.substring( 0, 40-i );
+    }
+    private static int parseError( char token, String text, int offset )
+    {
+        System.out.println("Unexpected "+token
+                            +" around "+around(text,offset));
+        return 0;
+    }
+    /**
+     * Check that a table has valid HTML
+     * @param table the HTML to check
+     * @param maxId the maximum id value
+     * @return 1 if it worked
+     */
+    private static int checkTableOutput( String table, int maxId )
+    {
+        int state = 0;
+        int maxIdValue=0;
+        StringBuilder key = new StringBuilder();
+        StringBuilder value = new StringBuilder();
+        for ( int i=0;i<table.length();i++ )
+        {
+            char token = table.charAt(i);
+            switch ( state )
+            {
+                case 0: // looking for '<'
+                    if ( token=='<' )
+                        state = 1;
+                    else if ( token=='>' )
+                        return parseError(token,table,i);
+                    break;
+                case 1: // looking for '/'
+                    if ( token!='/'&&!Character.isLetter(token) )
+                        return parseError(token,table,i);
+                    state = 2;
+                    break;
+                case 2: // reading tag-name
+                    if ( Character.isWhitespace(token) )
+                    {
+                        key.delete(0,key.length());
+                        value.delete(0,value.length());
+                        state = 3;
+                    }
+                    else if ( token=='>' )
+                        state = 0;
+                    else if (!Character.isLetter(token) )
+                        return parseError(token,table,i);
+                    break;
+                case 3: // looking for attribute key
+                    if ( Character.isLetter(token) )
+                    {
+                        key.append(token);
+                        state = 4;
+                    }
+                    else if ( !Character.isWhitespace(token) )
+                        return parseError(token,table,i);
+                    break;
+                case 4: // looking for '='
+                    if ( token == '=' )
+                        state = 5;
+                    else if ( !Character.isLetter(token) )
+                        return parseError(token,table,i);
+                    else
+                        key.append(token);
+                    break;
+                case 5: // looking for opening quote
+                    if ( token == '"' )
+                        state = 6;
+                    else
+                        return parseError(token,table,i);
+                    break;
+                case 6: // reading attribute value
+                    if ( token == '"' )
+                    {
+                        if ( key.toString().equals("id") )
+                        {
+                            String val = value.substring(1);
+                            try
+                            {
+                                maxIdValue = Integer.parseInt(val);
+                            }
+                            catch ( Exception e )
+                            {
+                                // ignore invalid numbers
+                            }
+                        }
+                        state = 2;
+                    }
+                    else if ( !Character.isLetter(token)&&!Character.isDigit(token) )
+                        return parseError(token,table,i);
+                    else
+                        value.append( token );
+                    break;
+            }
+        }
+        if ( maxIdValue != maxId )
+            System.out.println("expected maximum id to be "+maxId
+                +" but it was "+maxIdValue);
+        System.out.println("The html was correct");
+        return 1;
+    }
+    /**
      * Test table building
      * @param args one: the name of an MVD file
      */
@@ -2675,10 +2787,14 @@ public class MVD extends Serialiser implements Serializable
                 MVD mvd = MVDFile.internalise( src, null );
                 if ( mvd != null )
                 {
-                    String tView = mvd.getTableView( (short)6, 0, 10000, 
-                    false, false, true, "/Base/F1,/Base/F2,/Base/Q2",1,
-                    "apparatus");
-                    System.out.println(tView);
+                    long start = System.currentTimeMillis();
+                    String tView = mvd.getTableView( (short)6, 0, 22720, 
+                    true, true, true, "all",1,"apparatus");
+                    System.out.println( tView );
+                    checkTableOutput( tView, 568 );
+                    System.out.println("time taken="
+                        +(System.currentTimeMillis()-start)
+                        +" milliseconds. length="+tView.length());   
                 }
                 else
                     System.out.println("failed to load mvd");
@@ -2688,7 +2804,6 @@ public class MVD extends Serialiser implements Serializable
         }
         catch ( Exception e )
         {
-        }
-        
+        }    
     }
 }

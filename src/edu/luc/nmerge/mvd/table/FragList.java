@@ -81,6 +81,8 @@ public class FragList
      */
     void add( Atom a )
     {
+        if ( a.versions.isEmpty() )
+            System.out.println("empty!");
         fragments.add( a );
     }
     /**
@@ -353,19 +355,19 @@ public class FragList
         return fragments.isEmpty();
     }
     /**
-     * Create a table if not one does not already exist
+     * Create a table if one does not already exist
      * @param table the input table to check if it exists
      * @param versions the sigla needed by the table
      * @param base the base version of the new table
-     * @param bs versions to which this table must be constrained
+     * @param constraint versions to which this table must be constrained
      * @return the new table or the old one
      */
     Table updateTable( Table table, ArrayList<Version> versions, short base, 
-        BitSet bs )
+        BitSet constraint )
     {
         if ( table == null )
         {
-            table = new Table( bs, versions, base );
+            table = new Table( constraint, versions, base );
             table.setNested( true );
         }
         return table;         
@@ -381,22 +383,6 @@ public class FragList
     {
         a.or( b );
         return (short)a.nextSetBit(0);
-    }
-    /**
-     * Create an empty fragment for an insert/delete pair
-     * @param kind the kind: insert or delete
-     * @param bs the versions of the empty frag
-     * @param constraint constrain versions to this set
-     * @param not the versions of the non-empty fragment in parellel to this
-     * @return the empty fragment
-     */
-    Fragment emptyFrag( FragKind kind, BitSet bs, BitSet constraint, BitSet not )
-    {
-        bs.andNot( not );
-        bs.and( constraint );
-        if ( bs.isEmpty() )
-            System.out.println("bs is empty");
-        return new Fragment(kind,"", bs);
     }
     /**
      * Merge two fraglists for real by comparing them and creating an embedded 
@@ -421,7 +407,7 @@ public class FragList
         // x indexes into fl.fragments, y into fragments
         x = y = 0;
         Atom a,b;
-        BitSet bs;
+        BitSet bs1,bs2;
         ArrayList<Atom> mergedFrags = new ArrayList<Atom>();
         while ( !stack.isEmpty() )
         {
@@ -429,26 +415,40 @@ public class FragList
             switch ( s.kind )
             {
                 case inserted:
+                    bs1 = fl.getShared();
+                    bs1.and( constraint );
+                    bs2 = getShared();
+                    bs2.and( constraint );
+                    Utils.ensureExclusivity( bs1, bs2 );
                     table = updateTable( table, sigla, 
-                        (short)fl.getShared().nextSetBit(0), constraint );
+                        (short)bs1.nextSetBit(0), constraint );
                     a = fl.fragments.get(x++);
+                    a.versions.and(bs1);
                     a.kind = FragKind.inserted;
-                    b = emptyFrag( FragKind.deleted, getShared(), 
-                        constraint, a.versions );
+                    b = new Fragment(FragKind.deleted,"", bs2);
                     table.assignToRow( a );
                     table.assignToRow( b );
                     if ( table.rows.size()!=2 )
                        System.out.println("Table size != 2");
                     break;
                 case deleted:
+                    bs1 = getShared();
+                    bs1.and( constraint );
+                    bs2 = fl.getShared();
+                    bs2.and( constraint );
+                    Utils.ensureExclusivity( bs1, bs2 );
                     table = updateTable( table, sigla, 
-                        (short)getShared().nextSetBit(0), constraint );
+                        (short)bs1.nextSetBit(0), constraint );
                     a = fragments.get(y++);
+                    a.versions.and(bs1);
                     a.kind = FragKind.deleted;
-                    b = emptyFrag( FragKind.inserted, fl.getShared(), 
-                        constraint, a.versions );
+                    b = new Fragment(FragKind.inserted,"", bs2);
                     table.assignToRow( a );
                     table.assignToRow( b );
+                    if ( b.versions.isEmpty() )
+                    {
+                        System.out.println("empty!");
+                    }
                     if ( table.rows.size()!=2 )
                        System.out.println("Table size != 2");
                     break;
@@ -457,11 +457,11 @@ public class FragList
                     a.kind = FragKind.inserted;
                     b = fragments.get(y++);
                     b.kind = FragKind.deleted;
-                    bs = fl.getShared();
-                    bs.or( getShared() );
-                    bs.and( constraint );
+                    bs1 = fl.getShared();
+                    bs1.or( getShared() );
+                    bs1.and( constraint );
                     table = updateTable( table, sigla, 
-                        (short)bs.nextSetBit(0), bs );
+                        (short)bs1.nextSetBit(0), bs1 );
                     table.assignToRow( a );
                     table.assignToRow( b );
                     if ( a.versions.intersects(b.versions) )
@@ -491,7 +491,7 @@ public class FragList
         this.fragments = mergedFrags;
     }
     /**
-     * Merge two fraglists by just putting into separate rows of a table
+     * Merge two fraglists by just putting them into separate rows of a table
      * @param fl the other fraglist
      * @param sigla the descriptions of the versions
      * @param constraint nested tables must belong to these versions only
@@ -499,15 +499,14 @@ public class FragList
     private void mergeAsTable( FragList fl, ArrayList<Version> sigla, 
         BitSet constraint ) throws Exception
     {
-        short base = (short)constraint.nextSetBit(0);
-        Table table = new Table( constraint, sigla, base );
-        table.setNested( true );
         BitSet bs1 = getShared();
         bs1.and( constraint );
         BitSet bs2 = fl.getShared();
         bs2.and( constraint );
-        bs1.andNot( bs2 );
-        bs2.andNot( bs1 );
+        Utils.ensureExclusivity( bs1, bs2 );
+        short base = (short)bs1.nextSetBit(0);
+        Table table = new Table( constraint, sigla, base );
+        table.setNested( true );
         // construct rows
         Row r = new Row( bs1, sigla, base );
         r.setNested( true );
@@ -524,7 +523,7 @@ public class FragList
         table.addRow( r );
         table.addRow( s );
         if ( table.rows.size() != 2 )
-            System.out.println();
+            System.out.println("merged table does not contain two rows!");
         this.fragments.clear();
         this.fragments.add( table );
         if ( r.versions==null||r.versions.isEmpty() )
@@ -727,5 +726,16 @@ public class FragList
         {
             e.printStackTrace( System.out );
         }
+    }
+    /**
+     * Get the contents of this fraglist
+     * @return a String
+     */
+    String getContents()
+    { 
+        StringBuilder sb = new StringBuilder();
+        for ( int i=0;i<fragments.size();i++ )
+            sb.append(fragments.get(i).getContents());
+        return sb.toString();
     }
 }

@@ -262,8 +262,10 @@ public class TableView
                 r.add( fl );
             }
         }
+        table.checkRowVersions();
         if ( compact )
             table.compact();
+        table.checkRowVersions();
         if ( extend && hideMerged )
             table.extendToWholeWords();
         return table;
