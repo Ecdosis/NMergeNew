@@ -320,10 +320,7 @@ public class FragList
         }
         else
             editScript = new Step(null, FragKind.merged, x );
-        //System.out.println("diff="+D+"\n"+editScript);
-        float d = (float)D;
-        float maxSize = max(fragments.size(),fl.fragments.size());
-        return (maxSize-d)/maxSize;
+        return computeD( fl );
     }
     /**
      * How far can we extend x by matching fragments?
@@ -385,6 +382,73 @@ public class FragList
         return (short)a.nextSetBit(0);
     }
     /**
+     * Compute the char by char diff between two fraglists from the editscript
+     * @param fl the first fraglist
+     * @return the difference
+     */
+    float computeD( FragList fl )
+    {
+        Stack<Step> stack = new Stack<Step>();
+        int x,y;
+        Table table = null;
+        // reverse editScript using a stack
+        Step temp = editScript;
+        while ( temp != null )
+        {
+            stack.push( temp);
+            temp = temp.parent;
+        }
+        // x indexes into fl.fragments, y into fragments
+        x = y = 0;
+        Atom a,b;
+        int len1,len2;
+        float total = 0;
+        float diff = 0;
+        float overall;
+        while ( !stack.isEmpty() )
+        {
+            Step s = stack.pop();
+            switch ( s.kind )
+            {
+                case inserted:
+                    a = fl.fragments.get(x++);
+                    len1 = a.length();
+                    total += len1;
+                    diff += len1;
+                    break;
+                case deleted:
+                    a = fragments.get(y++);
+                    len2 = a.length();
+                    total += len2;
+                    diff += len2;
+                    break;
+                case exchanged:
+                    a = fl.fragments.get(x++);
+                    b = fragments.get(y++);
+                    b.kind = FragKind.deleted;
+                    len1 = a.length();
+                    len2 = b.length();
+                    total += (len1>len2)?len1:len2;
+                    diff += (len1>len2)?len1:len2;
+                    break;
+                case merged:
+                    while ( x < s.x )
+                    {
+                        Atom f1 = fragments.get(y++);
+                        x++;
+                        total += f1.length();
+                    }
+                    break;
+                case empty:
+                    break;
+            }
+        }
+        overall = (total-diff)/total;
+        //System.out.println("overall="+overall+": "+this.getContents()
+        //    +" fl.contents="+fl.getContents());
+        return overall;
+    }
+    /**
      * Merge two fraglists for real by comparing them and creating an embedded 
      * table in the middle
      * @param fl the other fraglist
@@ -420,16 +484,28 @@ public class FragList
                     bs2 = getShared();
                     bs2.and( constraint );
                     Utils.ensureExclusivity( bs1, bs2 );
+                    a = fl.fragments.get(x++);
+                    // don't create a nested table with a blank row
+                    if ( a instanceof Table )
+                    {
+                        Row r = ((Table)a).getEmptyRow();
+                        if ( r != null )
+                        {
+                            r.addVersions( bs2 );
+                            table = (Table)a;
+                            break;
+                        }
+                    }
+                    // fall through to here if no blank row
                     table = updateTable( table, sigla, 
                         (short)bs1.nextSetBit(0), constraint );
-                    a = fl.fragments.get(x++);
                     a.versions.and(bs1);
                     a.kind = FragKind.inserted;
                     b = new Fragment(FragKind.deleted,"", bs2);
                     table.assignToRow( a );
                     table.assignToRow( b );
-                    if ( table.rows.size()!=2 )
-                       System.out.println("Table size != 2");
+//                    if ( table.rows.size()!=2 )
+//                       System.out.println("Table size != 2");
                     break;
                 case deleted:
                     bs1 = getShared();
@@ -437,20 +513,32 @@ public class FragList
                     bs2 = fl.getShared();
                     bs2.and( constraint );
                     Utils.ensureExclusivity( bs1, bs2 );
+                    a = fragments.get(y++);
+                    // don't create a nested table with a blank row
+                    if ( a instanceof Table )
+                    {
+                        Row r = ((Table)a).getEmptyRow();
+                        if ( r != null )
+                        {
+                            r.addVersions( bs2 );
+                            table = (Table)a;
+                            break;
+                        }
+                    }
+                    // fall through to here if no blank row
                     table = updateTable( table, sigla, 
                         (short)bs1.nextSetBit(0), constraint );
-                    a = fragments.get(y++);
                     a.versions.and(bs1);
                     a.kind = FragKind.deleted;
                     b = new Fragment(FragKind.inserted,"", bs2);
                     table.assignToRow( a );
                     table.assignToRow( b );
-                    if ( b.versions.isEmpty() )
-                    {
-                        System.out.println("empty!");
-                    }
-                    if ( table.rows.size()!=2 )
-                       System.out.println("Table size != 2");
+//                    if ( b.versions.isEmpty() )
+//                    {
+//                        System.out.println("empty!");
+//                    }
+//                    if ( table.rows.size()!=2 )
+//                       System.out.println("Table size != 2");
                     break;
                 case exchanged:
                     a = fl.fragments.get(x++);
@@ -464,10 +552,10 @@ public class FragList
                         (short)bs1.nextSetBit(0), bs1 );
                     table.assignToRow( a );
                     table.assignToRow( b );
-                    if ( a.versions.intersects(b.versions) )
-                        System.out.println("versions conflict");
-                    if ( table.rows.size()!=2 )
-                       System.out.println("Table size != 2");
+//                    if ( a.versions.intersects(b.versions) )
+//                        System.out.println("versions conflict");
+//                    if ( table.rows.size()!=2 )
+//                       System.out.println("Table size != 2");
                     break;
                 case merged:
                     if ( table != null )

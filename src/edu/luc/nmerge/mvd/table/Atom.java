@@ -17,4 +17,5 @@ public abstract class Atom
     abstract boolean startsWithBreakPoint();
     abstract boolean endsWithBreakPoint();
     abstract String getContents();
+    abstract int length();
 }

@@ -33,6 +33,42 @@ public class Table extends Atom
         this.base = base;
     }
     /**
+     * Do we already have an empty row?
+     * @return the empty row if any
+     */
+    public Row getEmptyRow()
+    {
+        for ( int i=0;i<rows.size();i++ )
+        {
+            Row r = rows.get( i );
+            if ( r.isEmpty() )
+                return r;
+        }
+        return null;
+    }
+    /**
+     * Get the overall length of this table in characters
+     * @return its length in characters
+     */
+    public int length()
+    {
+        int total = 0;
+        for ( int i=0;i<rows.size();i++ )
+        {
+            Row r = rows.get( i );
+            for ( int j=0;j<r.cells.size();j++ )
+            {
+                FragList fl = r.cells.get( j );
+                for ( int k=0;k<fl.fragments.size();k++ )
+                {
+                    Atom a = fl.fragments.get( k );
+                    total += a.length();
+                }
+            }
+        }
+        return total;
+    }
+    /**
      * Set the nested property
      * @param value true if this is a nested table
      */

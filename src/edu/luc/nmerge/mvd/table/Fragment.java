@@ -25,6 +25,22 @@ class Fragment extends Atom
         this.versions = versions;
     }
     /**
+     * Get the length of this fragment
+     * @return its length in characters
+     */
+    public int length()
+    {
+        return contents.length();
+    }
+    /**
+     * Are we an empty fragment?
+     * @return true or false
+     */
+    public boolean isEmpty()
+    {
+        return contents == null || contents.length()==0;
+    }
+    /**
      * Set a special style that will be written out as a span class
      * @param style the name of the span's class
      */

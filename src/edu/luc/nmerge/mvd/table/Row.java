@@ -102,14 +102,15 @@ class Row
     float similarity( Row r )
     {
         float sim = 0.0f;
+        float fullSim = 1.0f/cells.size();
         for ( int i=0;i<cells.size();i++ )
         {
             FragList fl1 = cells.get(i);
             FragList fl2 = r.cells.get(i);
             if ( fl1.merged&&fl2.merged )
-                sim += 1.0f/cells.size();
+                sim += fullSim;
             else if ( fl1.equals(fl2) )
-                sim += 1.0f/cells.size();
+                sim += fullSim;
             else
                 sim += fl1.similarity(fl2)/cells.size();
         }
@@ -143,6 +144,39 @@ class Row
             return false;
     }
     /**
+     * Is this row empty?
+     * @return true if it is
+     */
+    public boolean isEmpty()
+    {
+        if ( cells.size()==0 )
+            return true;
+        else if ( cells.size()==1 )
+        {
+            FragList fl = cells.get(0);
+            return fl.getContents().length()==0;
+        }
+        return false;
+    }
+    public void addVersions( BitSet bs )
+    {
+        this.versions.or( bs );
+        for ( int i=0;i<cells.size();i++ )
+        {
+            FragList fl = cells.get(i);
+            for ( int j=0;j<fl.fragments.size();j++ )
+            {
+                Atom a = fl.fragments.get(j);
+                if ( a instanceof Fragment )
+                {
+                    Fragment f = (Fragment) a;
+                    if ( f.isEmpty() )
+                        f.versions.or(bs);
+                }
+            }
+        }
+    }
+    /**
      * Does this row NOT represent the base version?
      * @return true if it doesn't else false
      */
@@ -167,7 +201,7 @@ class Row
         if ( nested )
             sb.append("><td class=\"siglumhidden\">");
         else
-            sb.append("><td class=\"siglum\">");
+            sb.append("><td class=\"siglumleft\">");
         // write siglum
         String versionsString = Utils.bitSetToString(sigla,versions);
         sb.append( versionsString );
@@ -215,5 +249,16 @@ class Row
         for ( int i=0;i<cells.size();i++ )
             sb.append( cells.get(i).getContents() );
         return sb.toString();
+    }
+    /**
+     * Debug routine: test for equality of contents
+     * @param s the other row
+     * @return true if we equal s
+     */
+    boolean textEquals( Row s )
+    {
+        String us = getContents();
+        String them = s.getContents();
+        return us.equals(them);
     }
 }
