@@ -52,7 +52,7 @@ public class Node
 	static int id = 1;
 	/** unique identifier */
 	int nodeId;
-	/**
+    /**
 	 * Create a Node 
 	 */
 	public Node()
@@ -539,7 +539,7 @@ public class Node
 		else
 			throw new MVDException("Failed to remove arc "+a );
 	}
-	/**
+   /**
 	 * Check that a node meets the definition of a variant graph.
 	 * @throws MVDException if node is invalid
 	 */

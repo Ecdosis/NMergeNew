@@ -35,42 +35,59 @@ public class Diff
         this.newLen = newLen;
         this.kind = kind;
     }
-	/**
-	 * Get the length of the diff's old version
-	 * @return an integer
-	 */
-	public int oldLength()
-	{
-		return oldLen;
-	}
-	/**
-	 * Get the length of the diff's new version
-	 * @return an integer
-	 */
-	public int newLength()
-	{
-		return newLen;
-	}
-	/**
-	 * Get the old offset of the Diff
-	 * @return an integer
-	 */
-	public int getOldOffset()
-	{
-		return oldOffset;
-	}
-	/**
-	 * Get the new offset of the Diff
-	 * @return an integer
-	 */
-	public int getNewOffset()
-	{
-		return newOffset;
-	}
-	/**
-	 * Get the Diff's kind
-	 * @return a DiffKind
-	 */
+    /**
+    * Get the end of the diff's old version
+    * @return an integer
+    */
+    public int oldEnd()
+    {
+            return oldOffset+ oldLen;
+    }
+    /**
+     * Get the end of the diff's new version
+     * @return an integer
+     */
+    public int newEnd()
+    {
+            return newOffset+newLen;
+    }
+
+    /**
+     * Get the length of the diff's old version
+     * @return an integer
+     */
+    public int oldLen()
+    {
+            return oldLen;
+    }
+    /**
+     * Get the length of the diff's new version
+     * @return an integer
+     */
+    public int newLen()
+    {
+            return newLen;
+    }
+    /**
+     * Get the old offset of the Diff
+     * @return an integer
+     */
+    public int oldOff()
+    {
+            return oldOffset;
+    }
+    /**
+     * Get the new offset of the Diff
+     * @return an integer
+     */
+    public int newOff()
+    {
+            return newOffset;
+    }
+   /**
+    * Get the Diff's kind
+    * @return a DiffKind
+    */
     public DiffKind getKind()
     {
         return this.kind;

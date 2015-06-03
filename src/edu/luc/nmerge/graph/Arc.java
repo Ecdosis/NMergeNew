@@ -32,7 +32,7 @@ import java.util.ListIterator;
  */
 public class Arc 
 {
-	/** the Adler32 modulus */
+    /** the Adler32 modulus */
 	static int MOD_ADLER = 65521;
 	static String alphabet = new String(
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
@@ -59,7 +59,7 @@ public class Arc
 	 */
 	public Arc( BitSet versions, Arc parent )
 	{
-		this.versions = versions;
+        this.versions = versions;
 		// may attempt to create child of a child
 		if ( parent != null )
 		{

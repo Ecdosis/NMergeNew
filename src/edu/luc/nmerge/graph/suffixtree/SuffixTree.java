@@ -20,6 +20,8 @@
  */
 package edu.luc.nmerge.graph.suffixtree;
 import edu.luc.nmerge.exception.*;
+import java.io.File;
+import java.io.FileInputStream;
 
 /**
  * This is a Java translation of Shlomo Yona's open source 
@@ -916,6 +918,21 @@ public class SuffixTree
 	   System.out.println("\n\nTest Results: Success.\n");
 	   return true;
 	}
+    static Entry entries = null;
+    static void appendEntry( Entry e )
+    {
+        if ( entries == null )
+            entries = e;
+        else
+        {
+            Entry current = entries;
+            while ( current.next != null )
+            {
+                current = current.next;
+            }
+            current.next = e;
+        }
+    }
 	/** 
 	 * Test routine
 	 * @param args - ignored
@@ -923,17 +940,43 @@ public class SuffixTree
 	 */
 	public static void main( String[] args ) throws MVDException
 	{
-		byte[] data = "d".getBytes();
-		//byte[] mask = XMLMasker.getMask( data, true );
-		//byte[] copy = XMLMasker.maskOut( data, mask );
-		SuffixTree st = new SuffixTree( data, false );
-		st.printTree();
-		//st.selfTest();
-		int index = st.findSubstring("d".getBytes());
-		if ( index == st.stError )
-			System.out.println("Not found d");
-		else
-			System.out.println("Found d at "+index);
+		if ( args.length == 1 )
+        {
+            File file = new File( args[0] );
+            File[] files = file.listFiles();
+            try
+            {
+                for ( int i=0;i<files.length;i++ )
+                {
+                    FileInputStream fis = new FileInputStream(files[i]);
+                    byte[] data = new byte[(int)files[i].length()];
+                    fis.read( data );
+                    fis.close();
+                    System.gc();
+                    long mem2,mem1 = Runtime.getRuntime().freeMemory();
+                    long time2,time1 = System.nanoTime();
+                    SuffixTree st = new SuffixTree( data, false );
+                    mem2 = Runtime.getRuntime().freeMemory();
+                    time2 = System.nanoTime();
+                    Entry e = new Entry( files[i].getName(),
+                        (int)files[i].length(),(time2-time1)/1000,mem1-mem2);
+                    appendEntry( e );
+                }
+            }
+            catch ( Exception e )
+            {
+                System.out.println(e.getMessage());
+            }
+            Entry e = entries;
+            while ( e != null )
+            {
+                System.out.println(
+                    e.file+"\t"+e.size+"\t"+e.time+"\t"+e.space);
+                e = e.next;
+            }
+        }
+        else
+            System.out.println("usage: java edu.luc.nmerge.graph.suffixtree <dir>\n");
 	}
 	/** verify that all the words stored in str are findable */
 	void verify( byte[] str )

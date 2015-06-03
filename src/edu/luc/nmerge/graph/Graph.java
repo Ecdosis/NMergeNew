@@ -136,13 +136,13 @@ public class Graph
 	public Graph getMiniGraph( Diff d, short version, int pos, Node n )
         throws Exception
 	{
-		Node startNode = splitArcAt( n, version, pos, d.getOldOffset(), true );
+		Node startNode = splitArcAt( n, version, pos, d.oldOff(), true );
 		Node endNode = splitArcAt( startNode, version, 
-			d.getOldOffset(), d.getOldOffset()+d.oldLength(), false );
+			d.oldOff(), d.oldOff()+d.oldLen(), false );
 		BitSet nc = new BitSet();
 		nc.or( startNode.getVersions() );
 		nc.and( endNode.getVersions() );
-		return new Graph( startNode, endNode, nc, d.getOldOffset() );
+		return new Graph( startNode, endNode, nc, d.oldOff() );
 	}
 	/**
 	 * Work out if there are any paths from start to end that share exactly 

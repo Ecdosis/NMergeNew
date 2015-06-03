@@ -39,7 +39,7 @@ import edu.luc.nmerge.mvd.Pair;
 public class Converter 
 {
 	/** debug */
-	static int numParents;
+    static int numParents;
 	/** incomplete nodes during build */
 	HashSet<Node> incomplete;
 	/** unattached arcs during build */
@@ -157,7 +157,7 @@ public class Converter
 		if ( origSize < 15 )
 			origSize = 15;
 		numParents = 0;
-		ArrayList<Pair> pairs = new ArrayList<Pair>( origSize );
+        ArrayList<Pair> pairs = new ArrayList<Pair>( origSize );
 		printAcross( pairs, graph.start, allVersions );
 		if ( parents.size() != 0 )
 			throw new MVDToolException("Mismatched parent arc");
@@ -269,11 +269,12 @@ public class Converter
 		throws MVDException
 	{
 		int hint = -1;
-		Arc selected = u.pickOutgoingArc( incoming );
-		if ( selected != null )
+        Arc selected = u.pickOutgoingArc( incoming );
+        if ( selected != null )
 		{
-			assert !selected.to.isPrintedIncoming( selected.versions );
-			// add an empty tuple as a hint if required
+			if ( selected.to.isPrintedIncoming( selected.versions) )
+                System.out.println("incoming arc already printed");
+            // add an empty tuple as a hint if required
 			BitSet clique = u.getClique(selected);
 			if ( !clique.isEmpty() )
 			{
@@ -292,7 +293,7 @@ public class Converter
 				if ( a != selected )
 					hint = printDown( pairs, a, hint );
 			}
-		} 
+		}
 	}
 	/**
 	 *	Print a single tuple to the list. If this is the last incoming 

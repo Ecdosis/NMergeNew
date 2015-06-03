@@ -26,6 +26,7 @@ import java.io.Serializable;
 import java.io.File;
 
 import edu.luc.nmerge.graph.Graph;
+import edu.luc.nmerge.graph.Arc;
 import edu.luc.nmerge.graph.MUM;
 import edu.luc.nmerge.graph.SimpleQueue;
 import edu.luc.nmerge.graph.SpecialArc;
@@ -815,7 +816,7 @@ public class MVD extends Serialiser implements Serializable
         for ( int pos=0,i=0;i<diffs.length;i++ )
         {
             miniGraphs[i] = original.getMiniGraph( diffs[i], version, pos, n );
-            pos = diffs[i].getOldOffset()+diffs[i].oldLength();
+            pos = diffs[i].oldOff()+diffs[i].oldLen();
             n = miniGraphs[i].getEnd();
         }
         for ( int i=0;i<miniGraphs.length;i++ )
@@ -823,8 +824,8 @@ public class MVD extends Serialiser implements Serializable
             Graph g = miniGraphs[i];
             BitSet shared = g.getSharedVersions(version);
             g.removeVersions( shared );
-			byte[] diffData = new byte[diffs[i].newLength()];
-			int offset = diffs[i].getNewOffset();
+			byte[] diffData = new byte[diffs[i].newLen()];
+			int offset = diffs[i].newOff();
 			for ( int j=0;j<diffData.length;j++ )
 				diffData[j] = data[offset+j];
             SpecialArc special = g.addSpecialArc( diffData, shared, offset );
@@ -858,10 +859,10 @@ public class MVD extends Serialiser implements Serializable
         }
         else
             add( original, version, data );
-		pairs = con.serialise();
+        pairs = con.serialise();
 		if ( encoding.toUpperCase().equals("UTF-8") )
 			removeUTF8Splits();
-		if ( timing )
+        if ( timing )
 		{
 			String finishTime = new Long(System.currentTimeMillis()
 				-startTime).toString();
@@ -1422,7 +1423,7 @@ public class MVD extends Serialiser implements Serializable
      * Get a plain text representation of the groups and versions.
      * Each version is on a separate line, short names separated from 
      * long names via a tab. If not top-level each version is preceded 
-     * by a tab or its group name or names, Each roup-name is written 
+     * by a tab or its group name or names, Each group-name is written 
      * exactly once
      * @return the version table including group names and description
      */
@@ -1952,6 +1953,38 @@ public class MVD extends Serialiser implements Serializable
         else 
             return new Variant[0];
 	}
+    /**
+     * Get the versions that share a given range
+     * @param base the base version of the range
+     * @param offset the offset into base
+     * @param len the length of the range
+     * @return an array of vids that share all the bytes of the range
+     */
+    public String[] getVersionsOfRange( short base, int offset, int len )
+    {
+        try
+        {
+            PairPos start = new PairPos(next(0,base),0,base);
+            PairPos sPos = getPairPos(start,offset);
+            PairPos ePos = getPairPos(sPos,offset+len);
+            BitSet bs = new BitSet();
+            bs.or( getPair(sPos.index).versions );
+            for ( int i=sPos.index;i<=ePos.index;i+=next(i+1,base) )
+            {
+                bs.and(getPair(i).versions);
+            }
+            String[] vids = new String[bs.cardinality()];
+            for ( int j=0,i=bs.nextSetBit(1);i>=0;i=bs.nextSetBit(i+1) ) 
+            {
+                vids[j++] = getGroupPath((short)i)+getVersionShortName(i);
+            }
+            return vids;
+        }
+        catch ( Exception e )
+        {
+            return new String[0];
+        }
+    }
     /**
      * Get the variants of the base version between two endpoints
      * Filter the list of pairs between and including START..END.

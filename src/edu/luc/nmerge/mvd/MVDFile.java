@@ -224,7 +224,10 @@ public class MVDFile
 	public static void externalise( MVD mvd, File dst, int folderId, 
 			Properties rb ) throws Exception
 	{
-		int size = mvd.dataSize();
+		long start = System.nanoTime()/1000;
+        System.gc();
+        long startMem = Runtime.getRuntime().freeMemory();
+        int size = mvd.dataSize();
 		byte[] data = new byte[size];
 		int nBytes = mvd.serialise( data );
 		assert nBytes==size: "MVD shorter than predicted";
@@ -233,6 +236,11 @@ public class MVDFile
 			writeToFile( dst, str );
 		else
 			writeToDatabase( dst.getName(), str, mvd.description, folderId, rb );
+        long end = System.nanoTime()/1000;
+        long endMem = Runtime.getRuntime().freeMemory();
+        System.out.println("internalise took "+(end-start)+" microseconds");
+        System.out.println("Memory used "+(startMem-endMem)+" bytes");
+        
 	}
     /**
 	 * Convert an MVD to a string
@@ -243,7 +251,7 @@ public class MVDFile
 	 */
 	public static String externalise( MVD mvd ) throws Exception
 	{
-		int size = mvd.dataSize();
+        int size = mvd.dataSize();
 		byte[] data = new byte[size];
 		int nBytes = mvd.serialise( data );
 		assert nBytes==size: "MVD shorter than predicted";
@@ -392,7 +400,10 @@ public class MVDFile
 	public static MVD internalise( File src, Properties props ) throws Exception
 	{
 		MVD mvd = null;
-		char[] data = null;
+		//long start = System.nanoTime()/1000;
+        //System.gc();
+        //long startMem = Runtime.getRuntime().freeMemory();
+        char[] data = null;
 		if ( props == null )
 			data = readFromFile( src );
 		else
@@ -404,6 +415,10 @@ public class MVDFile
 		}
 		else
 			throw new MVDException( "data is empty");
+        //long end = System.nanoTime()/1000;
+        //long endMem = Runtime.getRuntime().freeMemory();
+        //System.out.println("internalise took "+(end-start)+" microseconds");
+        //System.out.println("Memory used "+(startMem-endMem)+" bytes");
 		return mvd;
 	}
 	/**

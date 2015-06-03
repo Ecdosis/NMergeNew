@@ -39,14 +39,14 @@ public class Path
         this.len = len;
         this.prev = null;
     }
-	/**
-	 * The Diff type has changed. Print out the old one IF it is pending
-	 * @param old the old location in the edit graph
-	 * @param p the current path component
-	 * @param diffs a list to store the new diff in
-	 * @param oldKind the kind of the pending Diff
-	 * @return
-	 */
+    /**
+     * The Diff type has changed. Print out the old one IF it is pending
+     * @param old the old location in the edit graph
+     * @param p the current path component
+     * @param diffs a list to store the new diff in
+     * @param oldKind the kind of the pending Diff
+     * @return
+     */
     Point printOld( Point old, Path p, ArrayList<Diff> diffs,
 		DiffKind oldKind )
     {
