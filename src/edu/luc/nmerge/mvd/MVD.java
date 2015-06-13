@@ -495,13 +495,14 @@ public class MVD extends Serialiser implements Serializable
 	}
 	/**
 	 * Create a new empty version.
+     * @param group if empty or null convert to TOP_LEVEL
 	 * @return the id of the new version
 	 */
 	public int newVersion( String shortName, String longName, String group, 
 		short backup, boolean partial ) 
 	{
 		short gId = findGroup( group );
-		if ( gId == 0 )
+		if ( gId == 0 && group != null && group.length()> 0 )
 		{
 			Group g = new Group( (short)0, group );
 			groups.add( g );
@@ -1602,8 +1603,8 @@ public class MVD extends Serialiser implements Serializable
             }
         }
         // there must be at least one group
-        if ( groupId == 0 )
-            groupId = 1;
+//        if ( groupId == 0 )
+//            groupId = 1;
         for ( int i=0;i<versions.size();i++ )
         {
             Version v = versions.get(i);
@@ -1952,7 +1953,16 @@ public class MVD extends Serialiser implements Serializable
         }
         else 
             return new Variant[0];
-	}
+    }
+    /**
+     * Get the new-style version id full path
+     * @param id the numeric id starting at 1
+     * @return a path starting with a slash
+     */
+    public String getVersionId( short id )
+    {
+        return getGroupPath(id)+"/"+getVersionShortName(id);
+    }
     /**
      * Get the versions that share a given range
      * @param base the base version of the range
@@ -1976,7 +1986,7 @@ public class MVD extends Serialiser implements Serializable
             String[] vids = new String[bs.cardinality()];
             for ( int j=0,i=bs.nextSetBit(1);i>=0;i=bs.nextSetBit(i+1) ) 
             {
-                vids[j++] = getGroupPath((short)i)+getVersionShortName(i);
+                vids[j++] = getGroupPath((short)i)+"/"+getVersionShortName(i);
             }
             return vids;
         }

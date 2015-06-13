@@ -5,6 +5,10 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/MVD.java</file>
+            <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/PairPos.java</file>
+            <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/Version.java</file>
+            <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/KMPSearchState.java</file>
+            <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/Group.java</file>
         </group>
     </open-files>
 </project-private>
