@@ -64,6 +64,10 @@ public class TextNavigator
     public TextNavigator()
     {
     }
+    /**
+     * Push a just-read token onto the unget queue
+     * @param token the token to unget
+     */
     private void push( char token )
     {
         if ( undo == null )
@@ -71,7 +75,7 @@ public class TextNavigator
         undo.add(token);
     }
     /**
-     * WHen going backwards we need to "push" to the front of the queue
+     * When going backwards we need to "push" to the front of the queue
      * @param token the token to unpush
      */
     private void unpush( char token )
@@ -167,7 +171,7 @@ public class TextNavigator
     }
     /**
      * Read a Roman page number if it is there, else do no damage
-     * @return true if it was bona fide Roman ending in CR/LF 
+     * @return true if it was bona fide Roman page no ending in CR/LF 
      */
     private boolean readRomanPage()
     {
@@ -201,7 +205,7 @@ public class TextNavigator
     }
     /**
      * Read an Arabic page number if it is there, else do no damage
-     * @return true if it was bona fide Roman ending in CR/LF 
+     * @return true if it was bona fide Arabic page no ending in CR/LF 
      */
     private boolean readArabicPage()
     {
@@ -332,7 +336,8 @@ public class TextNavigator
         }
     }
     /**
-     * See if there is a hyphenated word maybe split over a page-break.
+     * See if there is a hyphenated word maybe split over a page-break 
+     * when reading backwards.
      * @return true if you found it else false
      */
     private boolean readHyphenatedWordBackwards()
@@ -365,7 +370,7 @@ public class TextNavigator
         return hadHyphen && Character.isLetter(token);
     }
     /**
-     * Read an roman page-number backwards on a line by itself
+     * Read an Roman page-number backwards on a line by itself
      * If not present, saved the read characters in undo
      * @return true if it was there
      */
@@ -402,7 +407,7 @@ public class TextNavigator
         return len>0&&(mismatched=='\n'||mismatched=='\r');
     }
     /**
-     * Read an arabic page-number possibly ending in a lowercases letter
+     * Read an Arabic page-number possibly ending in a lowercases letter
      * If not present, saved the read characters in undo
      * @return true if it was there
      */
@@ -477,6 +482,10 @@ public class TextNavigator
             return token;
         }
     }
+    /**
+     * This test requires the nextChar or prevChar debug versions
+     * @param args 
+     */
     public static void main(String[] args )
     {
         TextNavigator tn = new TextNavigator();
@@ -499,16 +508,19 @@ public class TextNavigator
         "they had started to chop their way with machetes";
         StringBuilder sb = new StringBuilder();
         char t = 0;
-        tn.offset = 0;//tn.text.length()-1;
+        tn.offset = 0;
+        //tn.text.length()-1;   // use this for backwards
         while ( t != (char)-1)
         {
-            t = tn.next();
+            t = tn.next();  // forwards
+            // t = tn.prev(); // backwards
             if ( t != (char)-1 )
                 sb.append(t);
         }
         // write it out backwards
 //        for ( int i=sb.length()-1;i>=0;i-- )
 //            System.out.print(sb.charAt(i));
+        // use this for forwards
         for ( int i=0;i<sb.length();i++ )
             System.out.print(sb.charAt(i));
     }
