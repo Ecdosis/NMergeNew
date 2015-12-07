@@ -61,7 +61,7 @@ public class SuffixTree
     /** The one and only real source string of the tree. All edge-labels
       contain only indices to this string and do not contain the characters
       themselves */
-	byte[] treeString;
+	char[] treeString;
 	/** The node that is the head of all others. It has no siblings nor a 
 	 * father */
 	public Node root;
@@ -101,7 +101,7 @@ public class SuffixTree
 	 * @param debug true if we want debugging messages
 	 * @throws MVDException
 	 */
-	public SuffixTree( byte[] str, boolean debug ) throws MVDException
+	public SuffixTree( char[] str, boolean debug ) throws MVDException
 	{
 	   int phase;
 	   this.debug = debug;
@@ -109,7 +109,7 @@ public class SuffixTree
 	   this.e = 1;
 	   this.length = str.length+1;
 	   stError = length+10;
-	   this.treeString = new byte[length+1];
+	   this.treeString = new char[length+1];
 	   for ( int i=0;i<str.length;i++ )
 		   treeString[i+1] = str[i];
 	   // the '$' is never examined but assumed to be there
@@ -140,7 +140,7 @@ public class SuffixTree
 	 * @param character the character to be searched for in the sons
 	 * @return the son found, or null if no such son.
 	*/
-	Node findSon( Node node, byte character )
+	Node findSon( Node node, char character )
 	{
 	   // point to the first son.
 	   node = node.sons;
@@ -391,13 +391,13 @@ public class SuffixTree
 		return node;
 	}
 	/**
-	 * Get the Pos from the root that corresponds to the initial byte b
-	 * @param b the first byte from the root whose Pos is desired
+	 * Get the Pos from the root that corresponds to the initial char c
+	 * @param b the first char from the root whose Pos is desired
 	 * @return the relevant Pos, null if not present
 	 */
-	public Pos getStartPos( byte b )
+	public Pos getStartPos( char c )
 	{
-		Node node = findSon( root, b );
+		Node node = findSon( root, c );
 		if ( node != null )
 		{
 			return new Pos( node, node.edgeLabelStart );
@@ -406,19 +406,19 @@ public class SuffixTree
 			return null;
 	}
 	/**
-	 * Advance a Pos in the suffix tree by one byte if possible.
-	 * On entry the pos is matched with the byte it points to. We 
-	 * try to match the NEXT byte. If we succeed, we update pos. 
+	 * Advance a Pos in the suffix tree by one char if possible.
+	 * On entry the pos is matched with the char it points to. We 
+	 * try to match the NEXT char. If we succeed, we update pos. 
 	 * Otherwise we do nothing to pos.
-	 * @param b the byte to advance from pos
+	 * @param c the char to advance from pos
 	 * @param pos the position in the tree where we were last time
 	 * @return true if the advance was successful, false otherwise
 	 */
-	public boolean advance( Pos pos, byte b )
+	public boolean advance( Pos pos, char c )
 	{
 		if ( pos.node == null )
 		{
-			pos.node = findSon( root, b );
+			pos.node = findSon( root, c );
 			if ( pos.node != null )
 			{
 				pos.edgePos = pos.node.edgeLabelStart;
@@ -430,10 +430,10 @@ public class SuffixTree
 		else
 		{
 			int nodeLabelEnd = getNodeLabelEnd( pos.node );
-			// already matched that byte ...
+			// already matched that char ...
 			if ( pos.edgePos == nodeLabelEnd )
 		    {
-				Node localNode = findSon( pos.node, b );
+				Node localNode = findSon( pos.node, c );
 		    	if ( localNode != null )
 		    	{
 		    		pos.edgePos = localNode.edgeLabelStart;
@@ -445,7 +445,7 @@ public class SuffixTree
 		    }
 			else 
 			{
-				boolean success = treeString[pos.edgePos+1] == b;
+				boolean success = treeString[pos.edgePos+1] == c;
 				if ( success )
 					pos.edgePos++;
 				return success;
@@ -488,7 +488,7 @@ public class SuffixTree
 	 * the tree source string. If the substring is not found - returns 
 	 * stError
 	 */
-	public int findSubstring( byte[] W )         
+	public int findSubstring( char[] W )         
 	{
 		// starts with the root's son that has the first character of W 
 		// as its incoming edge first character
@@ -903,7 +903,7 @@ public class SuffixTree
 	      {
 	         // search for the current suffix in the tree 
 	    	 int len = k-j+1;
-	    	 byte[] test = new byte[len];
+	    	 char[] test = new char[len];
 	    	 for ( int m=0;m<len;m++ )
 	    		 test[m] = treeString[j+m];
 	         i = findSubstring( test );
@@ -955,7 +955,10 @@ public class SuffixTree
                     System.gc();
                     long mem2,mem1 = Runtime.getRuntime().freeMemory();
                     long time2,time1 = System.nanoTime();
-                    SuffixTree st = new SuffixTree( data, false );
+                    String dataStr = new String(data,"UTF-8");
+                    char[] chars = new char[dataStr.length()];
+                    dataStr.getChars(0,chars.length,chars,0);
+                    SuffixTree st = new SuffixTree( chars, false );
                     mem2 = Runtime.getRuntime().freeMemory();
                     time2 = System.nanoTime();
                     Entry e = new Entry( files[i].getName(),
@@ -979,7 +982,7 @@ public class SuffixTree
             System.out.println("usage: java edu.luc.nmerge.graph.suffixtree <dir>\n");
 	}
 	/** verify that all the words stored in str are findable */
-	void verify( byte[] str )
+	void verify( char[] str )
 	{
 		int start=-1;
 		for ( int i=0;i<str.length;i++ )
@@ -997,13 +1000,13 @@ public class SuffixTree
 	}
 	/**
 	 * Report a word as found or not
-	 * @param str the byte array the words are coming from
+	 * @param str the char array the words are coming from
 	 * @param start the start offset of the word to report-
 	 * @param end an index one beyond the end of the word
 	 */
-	void reportWord( byte[] str, int start, int end )
+	void reportWord( char[] str, int start, int end )
 	{
-		byte[] word = new byte[end-start];
+		char[] word = new char[end-start];
 		for ( int j=start,i=0;i<word.length;i++,j++ )
 			word[i] = str[j];
 		String temp = new String(word);

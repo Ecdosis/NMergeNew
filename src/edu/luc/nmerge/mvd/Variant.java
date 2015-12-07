@@ -37,12 +37,12 @@ public class Variant implements Comparable<Variant>
 	int endIndex;
 	/** the start-offset within start node */
 	int startOffset;
-	/** the length of the variant's real data in bytes */
+	/** the length of the variant's real data in chars */
 	int length;
 	/** the mvd it is associated with */
 	MVD mvd;
 	/** the actual data of this variant */
-	byte[] data;
+	char[] data;
 	/**
 	 * Construct a variant 
 	 * @param startOffset initial offset within startIndex
@@ -97,7 +97,7 @@ public class Variant implements Comparable<Variant>
 		StringBuilder sb = new StringBuilder();
 		try
 		{
-			sb.append( new String(data,mvd.encoding) );
+			sb.append( new String(data) );
 		}
 		catch ( Exception e )
 		{
@@ -107,19 +107,15 @@ public class Variant implements Comparable<Variant>
 		return header+dataStr+"]";
 	}
 	/**
-	 * Convert this variant to a byte array
-	 * @return a byte array
+	 * Convert this variant to a char array
+	 * @return a char array
 	 */
-	public byte[] getBytes()
+	public char[] getChars()
 	{
-		try
-		{
-            return this.toString().getBytes(mvd.encoding);
-		}
-		catch ( Exception e )
-		{
-			return this.toString().getBytes();
-		}
+		String str = this.toString();
+        char[] chars = new char[str.length()];
+        str.getChars(0,chars.length,chars,0);
+        return chars;
 	}
 	/**
 	 * Test for equality. Versions don't matter. What we want is to find 
@@ -172,14 +168,14 @@ public class Variant implements Comparable<Variant>
 		String vStr = versions.toString();
 		int hDataLen = data.length+nodeStr.length()
 			+offsetStr.length()+vStr.length();
-		byte[] hashData = new byte[hDataLen];
+		char[] hashData = new char[hDataLen];
 		int j = 0;
 		for ( int i=0;i<nodeStr.length();i++ )
-			hashData[j++] = (byte)nodeStr.charAt(i);
+			hashData[j++] = nodeStr.charAt(i);
 		for ( int i=0;i<offsetStr.length();i++ )
-			hashData[j++] = (byte)offsetStr.charAt(i);
+			hashData[j++] = offsetStr.charAt(i);
 		for ( int i=0;i<vStr.length();i++ )
-			hashData[j++] = (byte)vStr.charAt(i);
+			hashData[j++] = vStr.charAt(i);
 		for ( int i=0;i<data.length;i++ )
 			hashData[j++] = data[i];
 		for ( int i=0;i<hashData.length;++i )
@@ -197,7 +193,7 @@ public class Variant implements Comparable<Variant>
 	{
 		if ( data == null )
         {
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            StringBuilder sb = new StringBuilder();
             int iNode = startIndex;
             Pair p = mvd.pairs.get( iNode );
             int i = startOffset;
@@ -213,11 +209,12 @@ public class Variant implements Comparable<Variant>
                 }
                 else
                 {
-                    bos.write( p.getData()[i++] );
+                    sb.append( p.getChars()[i++] );
                     totalLen++;
                 }
             }
-            data = bos.toByteArray();
+            data = new char[sb.length()];
+            sb.getChars(0, data.length, data, 0);
         }
 	}
 	/**
@@ -323,18 +320,9 @@ public class Variant implements Comparable<Variant>
 				return res;
 			else
 			{
-				try
-				{
-					String thisD = new String( data, mvd.encoding );
-					String thatD = new String( other.data, other.mvd.encoding );
-					return thisD.compareTo( thatD );
-				}
-				catch ( Exception e )
-				{
-					String thisD = new String( data );
-					String thatD = new String( other.data );
-					return thisD.compareTo( thatD );
-				}
+				String thisD = new String( data );
+				String thatD = new String( other.data );
+			    return thisD.compareTo( thatD );
 			}
 		}
 	}

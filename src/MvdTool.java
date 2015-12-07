@@ -33,9 +33,10 @@ import edu.luc.nmerge.mvd.XMLGuideFile;
 import edu.luc.nmerge.mvd.Version;
 import edu.luc.nmerge.exception.*;
 import edu.luc.nmerge.fastme.FastME;
-import edu.luc.qut.nmerge.Utilities;
+import edu.luc.nmerge.Utilities;
 import java.nio.charset.Charset;
 import java.io.FileInputStream;
+import java.io.OutputStreamWriter;
 import java.io.FileOutputStream;
 import java.io.FileNotFoundException;
 import java.util.BitSet;
@@ -354,6 +355,9 @@ public class MvdTool
 					out.println( "nmerge -c variants -m work.mvd "
 						+"-v 3 -o 1124 -k 23");					
 					break;
+                case WORDS:
+                    out.println( "nmerge -c words -m work.mvd" );
+                    break;
 				case HELP: case USAGE:
 					usage();
 					break;
@@ -383,8 +387,8 @@ public class MvdTool
                 out.write( UTF8_BOM, 0, UTF8_BOM.length );
             for ( int i=0;i<chunks.length;i++ )
 			{
-				byte[] bytes = chunks[i].getBytes();
-				out.write( bytes, 0, bytes.length );
+				char[] chars = chunks[i].getChars();
+				out.print( chars );
 			}
 		}
 		catch ( Exception e )
@@ -419,11 +423,12 @@ public class MvdTool
 			if ( t.exists() )
 			{
 				MVD mvd = loadMVD();
-				//mvd.removeVersion( version );
+				mvd.removeVersion( version );
 				FileInputStream fis = new FileInputStream( t );
 				byte[] data = new byte[(int)t.length()];
 				fis.read( data );
-				mvd.update( version, data, mergeSharedVersions );
+                char[] chars = Utilities.bytesToChars(data, mvd.getEncoding());
+				mvd.update( version, chars, mergeSharedVersions );
 				MVDFile.externalise( mvd, new File(mvdFile), folderId,
 					Utilities.loadDBProperties(dbConn) );
 			}
@@ -452,9 +457,8 @@ public class MvdTool
                 out.write( UTF8_BOM, 0, UTF8_BOM.length );
 			for ( int i=0;i<variants.length;i++ )
 			{
-				byte[] bytes = variants[i].getBytes();
-                out.write( bytes, 0, bytes.length );
-				out.write( "\n".getBytes(), 0, 1 );
+				char[] chars = variants[i].getChars();
+                out.println( chars );
 			}
 		}
 		catch ( Exception e )
@@ -487,7 +491,8 @@ public class MvdTool
 	{
 		try
 		{
-			byte[] pattern = findString.getBytes();
+            char[] pattern = new char[findString.length()];
+            findString.getChars(0,pattern.length,pattern,0);
 			if ( pattern.length > 0 )
 			{
 				MVD mvd = loadMVD();
@@ -562,8 +567,9 @@ public class MvdTool
 				FileInputStream fis = new FileInputStream( t );
 				byte[] data = new byte[(int)t.length()];
 				fis.read( data );
-				version = (short)(mvd.numVersions());
-				mvd.update( version, data, mergeSharedVersions );
+				char[] chars = Utilities.bytesToChars(data,mvd.getEncoding());
+                version = (short)(mvd.numVersions());
+				mvd.update( version, chars, mergeSharedVersions );
 				if ( mvd.getDescription() != null )
 				{
 					MVDFile.externalise( mvd, m, folderId, 
@@ -574,7 +580,7 @@ public class MvdTool
 			}
 			else
 				throw new FileNotFoundException(
-					"Couldn't find file "+textFile );
+					"Couldn't find file "+t.getAbsolutePath() );
 		}
 		catch ( Exception e )
 		{
@@ -608,13 +614,14 @@ public class MvdTool
 			int nVersions = mvd.numVersions();
 			for ( short i=1;i<=nVersions;i++ )
 			{
-				byte[] data = mvd.getVersion( i );
+				char[] data = mvd.getVersion( i );
 				// use the short name as the file name
 				String vName = mvd.getVersionShortName( i );
 				File versionFile = new File( archiveDir, vName );
-				FileOutputStream fos = new FileOutputStream( versionFile );
-				fos.write( data );
-				fos.close();
+                FileOutputStream fos = new FileOutputStream( versionFile );
+				OutputStreamWriter osw = new OutputStreamWriter( fos, mvd.getEncoding() );
+				osw.write( data );
+				osw.close();
 				guideFile.setVersionFile( i, vName );
 			}
 			guideFile.externalise( new File(archiveDir,XMLGuideFile.GUIDE_FILE) );
@@ -662,7 +669,8 @@ public class MvdTool
 				mvd.newVersion( vi.shortName, vi.longName, 
 					guide.getGroupName(vi.group), 
 					vi.backup, vi.backup!=Version.NO_BACKUP );
-				mvd.update( vId, data, mergeSharedVersions );
+                char[] chars = Utilities.bytesToChars(data,mvd.getEncoding());
+				mvd.update( vId, chars, mergeSharedVersions );
 			}
 			MVDFile.externalise( mvd, new File(mvdFile), 
 				folderId, Utilities.loadDBProperties(dbConn) );
@@ -680,10 +688,13 @@ public class MvdTool
 		try
 		{
 			MVD mvd = loadMVD();
-			byte[] data = mvd.getVersion( version );
-            if ( mvd.getEncoding().toUpperCase().equals("UTF-8") )
-                out.write( UTF8_BOM, 0, UTF8_BOM.length );
-			out.write( data, 0, data.length );
+			char[] data = mvd.getVersion( version );
+            String str = new String(data);
+//            if ( mvd.getEncoding().toUpperCase().equals("UTF-8") )
+//                out.write( UTF8_BOM, 0, UTF8_BOM.length );
+            // unsure if this will work on all systems
+            // since UTF-8 may not be the default enccoding
+			out.print( str );
 		}
 		catch ( Exception e )
 		{

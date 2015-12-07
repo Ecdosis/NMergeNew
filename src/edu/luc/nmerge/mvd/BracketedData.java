@@ -11,9 +11,9 @@ import java.io.ByteArrayOutputStream;
 public abstract class BracketedData 
 {
 	/** the data of the chunk */
-	protected byte[] realData;
+	protected char[] realData;
 	/** the escaped data of the chunk */
-	protected byte[] escapedData;
+	protected char[] escapedData;
 	/** length of data parsed to produce this object */
 	protected int srcLen;
 	/** encoding of the data */
@@ -31,7 +31,7 @@ public abstract class BracketedData
 	 * @param encoding the encoding of the data to be parsed
 	 * @param data the original data
 	 */
-	public BracketedData( String encoding, byte[] data )
+	public BracketedData( String encoding, char[] data )
 	{
 		this.encoding = encoding;
 		this.realData = data;
@@ -43,12 +43,12 @@ public abstract class BracketedData
 	 * @param pos the start offset in the data
 	 * @return the number of bytes consumed
 	 */
-	protected int readData( byte[] chunkData, int pos )
+	protected int readData( char[] chunkData, int pos )
 	{
 		int state = 0;
 		int start = pos;
-		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		while ( pos < chunkData.length && state != -1 )
+		StringBuilder sb = new StringBuilder();
+        while ( pos < chunkData.length && state != -1 )
 		{
 			switch ( state )
 			{
@@ -58,63 +58,65 @@ public abstract class BracketedData
 					else if ( chunkData[pos] == ']' )
 						state = -1;
 					else
-						bos.write( chunkData[pos] );
+						sb.append( chunkData[pos] );
 					break;
 				case 1:	// reading backslash
 					if ( chunkData[pos] == '\\' )
-						bos.write( '\\' );
+						sb.append( '\\' );
 					else if ( chunkData[pos] == ']' )
-						bos.write( ']' );
+						sb.append( ']' );
 					state = 0;
 					break;					
 			}
 			pos++;
 		}
-		realData = bos.toByteArray();
+        realData = new char[sb.length()];
+		sb.getChars(0,realData.length,realData,0);
 		escapedData = escapeData( realData );
 		return pos - start;
 	}
 	/**
 	 * Ensure that any ']'s in the data are escaped so we can use them 
 	 * to terminate the chunk when parsing it
-	 * @param bytes the array to be escaped
+	 * @param chars the array to be escaped
 	 * @return the same array of bytes but ']' replaced with '\]' and 
 	 * '\' replaced by '\\'
 	 */
-	protected byte[] escapeData( byte[] bytes )
+	protected char[] escapeData( char[] chars )
 	{
-		ByteArrayOutputStream bos = new ByteArrayOutputStream( 
-			bytes.length+5 );
-		for ( int i=0;i<bytes.length;i++ )
+		StringBuilder sb= new StringBuilder();
+		for ( int i=0;i<chars.length;i++ )
 		{
-			if ( bytes[i] == '\\' )
+			if ( chars[i] == '\\' )
 			{
-				bos.write( '\\' );
-				bos.write( '\\' );
+				sb.append( '\\' );
+				sb.append( '\\' );
 			}
-			else if ( bytes[i] == ']' )
+			else if ( chars[i] == ']' )
 			{
-				bos.write( '\\' );
-				bos.write( ']' );
+				sb.append( '\\' );
+				sb.append( ']' );
 			}
 			else
-				bos.write( bytes[i] );
+				sb.append( chars[i] );
 		}
-		return bos.toByteArray();
+        char[] array = new char[sb.length()];
+        sb.getChars(0,array.length,array,0);
+		return array;
 	}
 	/**
 	 * Add some data to the chunk. 
-	 * @param bytes the new bytes to add to data
+	 * @param chars the new chars to add to data
 	 */
-	public void addData( byte[] bytes )
+	public void addData( char[] chars )
 	{
-		if ( bytes != null && bytes.length > 0 )
+		if ( chars != null && chars.length > 0 )
 		{
-			byte[] newData = new byte[realData.length+bytes.length];
+			char[] newData = new char[realData.length+chars.length];
 			for ( int i=0;i<realData.length;i++ )
 				newData[i] = realData[i];
-			for ( int j=realData.length,i=0;i<bytes.length;i++,j++ )
-				newData[j] = bytes[i];
+			for ( int j=realData.length,i=0;i<chars.length;i++,j++ )
+				newData[j] = chars[i];
 			realData = newData;
 			escapedData = escapeData( realData );
 		}
@@ -127,20 +129,17 @@ public abstract class BracketedData
 	protected abstract String createHeader();
 	/**
 	 * Write out the chunk without converting its bytes to characters
-	 * @return a byte array
+	 * @return a char array
 	 */
-	public byte[] getBytes()
+	public char[] getChars()
 	{
 		String header = createHeader();
-		byte[] headerBytes = header.getBytes();
-		byte[] totalBytes = new byte[headerBytes.length+escapedData.length+1];
-		int j=0;
-		for ( int i=0;i<headerBytes.length;i++ )
-			totalBytes[j++] = headerBytes[i];
-		for ( int i=0;i<escapedData.length;i++ )
-			totalBytes[j++] = escapedData[i];
-		totalBytes[j] = ']';
-		return totalBytes;
+        StringBuilder sb = new StringBuilder(header);
+        sb.append(escapedData);
+        sb.append("]");
+        char[] totalChars = new char[sb.length()];
+        sb.getChars(0,totalChars.length,totalChars,0);
+		return totalChars;
 	}
 	/**
 	 * Get the length of the source data
@@ -154,7 +153,7 @@ public abstract class BracketedData
 	 * Get the read unescaped data
 	 * @return a byte array of raw data
 	 */
-	public byte[] getData()
+	public char[] getData()
 	{
 		return realData;
 	}

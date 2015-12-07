@@ -43,7 +43,7 @@ public class Arc
 	/** the destination Node */
 	public Node to;
 	/** the data of this Arc */
-	byte[] data;
+	char[] data;
 	/** usually empty list of transpose children */
 	LinkedList<Arc> children;
 	/** parent - can't be set as well as children */
@@ -90,7 +90,7 @@ public class Arc
 	 * @param versions the versions it belongs to
 	 * @param data its data content
 	 */
-	public Arc( BitSet versions, byte[] data )
+	public Arc( BitSet versions, char[] data )
 	{
 		this.versions = versions;
 		this.data = data;
@@ -116,7 +116,7 @@ public class Arc
 	 * Get the data of this arc
 	 * @return the data as a byte array
 	 */
-	public byte[] getData()
+	public char[] getData()
 	{
 		if ( parent != null )
 			return parent.data;
@@ -179,7 +179,7 @@ public class Arc
 			{
 				sb.append( alphabet.charAt(i-1) );
 			}
-			byte[] realData = getData();
+			char[] realData = getData();
 			String dataString = new String( realData );
 			dataString = dataString.replace('\r', '/');
 			dataString = dataString.replace('\n', '/');
@@ -292,7 +292,7 @@ public class Arc
 	private Arc[] splitDataArc( int offset ) throws MVDException
 	{
 		Arc[] arcs = new Arc[2];
-		byte[] leftData = new byte[offset];
+		char[] leftData = new char[offset];
 		BitSet leftVersions = new BitSet();
 		BitSet rightVersions = new BitSet();
 		leftVersions.or( versions );
@@ -302,7 +302,7 @@ public class Arc
 			leftData[i] = data[i];
 		}
 		arcs[0] = new Arc( leftVersions, leftData );
-		byte[] rightData = new byte[dataLen()-offset];
+		char[] rightData = new char[dataLen()-offset];
 		for ( int i=offset,j=0;i<dataLen();i++,j++ )
 		{
 			rightData[j] = data[i];
@@ -341,8 +341,8 @@ public class Arc
 	 */
 	private boolean dataEquals( Arc otherArc )
 	{
-		byte[] data1 = getData();
-		byte[] data2 = otherArc.getData();
+		char[] data1 = getData();
+		char[] data2 = otherArc.getData();
 		if ( (data1==null&&data2!=null)||(data1!=null&&data2==null) )
 			return false;
 		else if ( data1==null&&data2==null)

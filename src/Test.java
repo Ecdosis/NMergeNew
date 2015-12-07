@@ -33,6 +33,7 @@ import java.io.PrintStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.File;
 import java.util.Vector;
 import java.util.Random;
@@ -143,7 +144,7 @@ public class Test
 						Integer.toString(offset),"-k",Integer.toString(length),
 						"-v",Integer.toString(baseId)};
 					ByteArrayOutputStream bos = new ByteArrayOutputStream();
-					PrintStream ps = new PrintStream( bos );
+					PrintStream ps = new PrintStream( bos, true, "UTF-8" );
 					MvdTool.run( args0, ps );
 					ps.close();
 					byte[] varData = bos.toByteArray();
@@ -231,7 +232,7 @@ public class Test
 					String[] args0 = {"-c","find","-m",mvdName,"-f",pattern};
 					Match[] matches = getMatches( files, pattern, mvd );
 					ByteArrayOutputStream bos = new ByteArrayOutputStream();
-					PrintStream ps = new PrintStream( bos );
+					PrintStream ps = new PrintStream( bos, true, "UTF-8" );
 					MvdTool.run( args0, ps );
 					ps.close();
 					byte[] matchData = bos.toByteArray();
@@ -389,14 +390,14 @@ public class Test
 				int v2 = -1;
 				while ( v2 == -1 || v2 == v1 )
 					v2 = rand.nextInt(numVersions)+1;
-				byte[] text1 = mvd.getVersion( v1 );
-				byte[] text2 = mvd.getVersion( v2 );
-				byte[] ver1 = collectVersionFromCompare(mvdName,
+				char[] text1 = mvd.getVersion( v1 );
+				char[] text2 = mvd.getVersion( v2 );
+				char[] ver1 = collectVersionFromCompare(mvdName,
 					v1,v2,ChunkState.deleted,text1);
-				byte[] ver2 = collectVersionFromCompare(mvdName,
+				char[] ver2 = collectVersionFromCompare(mvdName,
 					v2,v1,ChunkState.added,text2);
-				compareTwoByteArrays( text1, ver1 );
-				compareTwoByteArrays( text2, ver2 );
+				compareTwoCharArrays( text1, ver1 );
+				compareTwoCharArrays( text2, ver2 );
 				System.out.print(".");
 			}
 			testsPassed++;
@@ -415,10 +416,10 @@ public class Test
 	 * @param v2 the second version
 	 * @param unique the state for unique text of the first version
 	 * @param original original text of version 1 for comparison (debug)
-	 * @return a byte array containing a copy of version 1
+	 * @return a char array containing a copy of version 1
 	 */
-	private static byte[] collectVersionFromCompare( String mvdName, 
-		int v1, int v2, ChunkState unique, byte[] original ) 
+	private static char[] collectVersionFromCompare( String mvdName, 
+		int v1, int v2, ChunkState unique, char[] original ) 
 		throws Exception
 	{
 		String vId1 = Integer.toString(v1);
@@ -426,18 +427,19 @@ public class Test
 		String[] args0 = {"-c","compare","-m",mvdName,"-v",vId1,
 				"-w",vId2,"-u",unique.toString()};
 		ByteArrayOutputStream bos = new ByteArrayOutputStream();
-		PrintStream ps = new PrintStream( bos );
+		PrintStream ps = new PrintStream( bos, true, "UTF-8" );
 		MvdTool.run( args0, ps );
 		ps.close();
 		int pos = 0;
 		int j = 0;
-		byte[] chunkData = bos.toByteArray(); 
-		ByteArrayOutputStream bos2 = new ByteArrayOutputStream( 
-			chunkData.length );
+		String chunkStr = bos.toString(); 
+        char[] chunkData = new char[chunkStr.length()];
+        chunkStr.getChars(0,chunkData.length,chunkData,0);
+		StringBuilder sb = new StringBuilder();
 		while ( pos < chunkData.length )
 		{
 			Chunk chunk = new Chunk( chunkData, pos, (short)0 );
-			byte[] bytes = chunk.getData();
+			char[] bytes = chunk.getData();
 			for ( int i=0;i<bytes.length;i++,j++ )
 			{
 				if ( original[j] != bytes[i] )
@@ -446,9 +448,11 @@ public class Test
 						+"not the same as original");
 			}
 			pos += chunk.getSrcLen();
-			bos2.write( chunk.getData() );
+			sb.append( chunk.getData() );
 		}
-		return bos2.toByteArray();
+        char[] res = new char[sb.length()];
+		sb.getChars(0,res.length,res,0);
+        return res;
 	}
 	/**
 	 * Test the list function. This writes all the groups and versions 
@@ -467,7 +471,7 @@ public class Test
 			MVD mvd = MVDFile.internalise( mvdFile, null );
 			String[] args0 = {"-c","list","-m",mvdName};
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			PrintStream ps = new PrintStream( bos );
+			PrintStream ps = new PrintStream( bos, true, "UTF-8" );
 			MvdTool.run( args0, ps );
 			ps.close();
 			byte[] list = bos.toByteArray();
@@ -492,7 +496,9 @@ public class Test
 	{
 		String response = new String( list );
 		String[] parts = response.split("\n");
-		for ( int i=0;i<parts.length;i++ )
+        if ( parts.length==0 ||parts[0].indexOf('\t')!=-1 )
+            throw new MVDTestException("Invalid list versions header");
+		for ( int i=1;i<parts.length;i++ )
 			readLine( parts[i], mvd );
 	}
 	/**
@@ -506,41 +512,9 @@ public class Test
 	private static void readLine( String line, MVD mvd )
 		throws MVDTestException
 	{
-		String[] parts = line.split(
-			"Id=|group=|backup=|short-name=|long-name=");
-		if ( parts.length == 6 )
-		{
-			int vId = Integer.parseInt( parts[1].trim() );
-			String shortName = mvd.getVersionShortName( vId );
-			String longName = mvd.getVersionLongName( vId );
-			short gId = mvd.getGroupForVersion( vId );
-			short backup = mvd.getBackupForVersion( vId );
-			String group = mvd.getGroupName( gId );
-			if ( !shortName.equals(parts[4].trim()) )
-				throw new MVDTestException("version short name "
-					+shortName
-					+" and that read by list command ("
-					+parts[4].trim()+") not equal");
-			if ( !longName.equals(parts[5].trim()) )
-				throw new MVDTestException("version long name "
-					+longName
-					+" and that read by list command ("
-					+parts[5].trim()+") not equal");
-			if ( !group.equals(parts[2].trim()) )
-				throw new MVDTestException("version group name "
-					+group
-					+" and that read by list command ("
-					+parts[2].trim()
-					+") not equal");
-			if ( backup != Short.parseShort(parts[3].trim()) )
-				throw new MVDTestException("version backup value "
-					+backup
-					+"and that read by list command ("
-					+parts[3].trim()
-					+") not equal");
-			// signal success of this iteration
+		String[] parts = line.split("\t");
+		if ( parts.length == 3 )
 			System.out.print(".");
-		}
 		else
 			throw new MVDTestException(
 				"Invalid list response line: "+line );
@@ -569,11 +543,16 @@ public class Test
 				PrintStream ps = new PrintStream( bos, true, "UTF-8" );
 				MvdTool.run( args0, ps );
 				ps.close();
-				byte[] data1 = bos.toByteArray();
+				String str1 = bos.toString();
+                char[] data1 = new char[str1.length()];
+                str1.getChars(0,data1.length,data1,0);
 				FileInputStream fis = new FileInputStream( versions[vId-1] );
-				byte[] data2 = new byte[(int)versions[vId-1].length()];
-				fis.read( data2 );
-				compareTwoByteArrays( data1, data2 );
+				byte[] bytes = new byte[(int)versions[vId-1].length()];
+				fis.read( bytes );
+                String str2 = new String(bytes,"UTF-8");
+                char[] data2 = new char[str2.length()];
+                str2.getChars(0,data2.length,data2,0);
+				compareTwoCharArrays( data1, data2 );
 				System.out.print(".");
 			}
 			testsPassed++;
@@ -590,7 +569,7 @@ public class Test
 	 * @param data2 the second byte array
 	 * @throws MVDTestException the exception raised
 	 */
-	private static void compareTwoByteArrays( byte[] data1, byte[] data2 )
+	private static void compareTwoCharArrays( char[] data1, char[] data2 )
 		throws MVDTestException
 	{
 		if ( data2.length != data1.length )
@@ -622,7 +601,7 @@ public class Test
 			int numVersions = mvd.numVersions();
 			Random rand = new Random( System.currentTimeMillis() );
 			int vId = rand.nextInt(numVersions)+1;
-			byte[] data1 = mvd.getVersion( vId );
+			char[] data1 = mvd.getVersion( vId );
 			// replace every 10th 'b' with 'x'
 			for ( int bCount=0,i=0;i<data1.length;i++ )
 			{
@@ -641,14 +620,15 @@ public class Test
 			String tempName = TEST_FOLDER+File.separator+"temp.txt";
 			File tempFile = new File( tempName );
 			FileOutputStream fos = new FileOutputStream( tempFile );
-			fos.write( data1 );
-			fos.close();
+            OutputStreamWriter osw = new OutputStreamWriter(fos,"UTF-8");
+			osw.write( data1 );
+			osw.close();
 			String[] args0 = {"-c","update","-m",mvdName,"-v",vIdStr,"-t",
 				tempName};
 			MvdTool.run( args0, out );
 			mvd = MVDFile.internalise( mvdFile, null );
-			byte[] data2 = mvd.getVersion( vId );
-			compareTwoByteArrays( data1, data2 );
+			char[] data2 = mvd.getVersion( vId );
+			compareTwoCharArrays( data1, data2 );
 			System.out.print(".");
 			// updated file can't be used for other tests
 			mvdFile.delete();
@@ -716,9 +696,9 @@ public class Test
 		int numVersions = mvd1.numVersions();
 		for ( int vId=1;vId<=numVersions;vId++ )
 		{
-			byte[] data1 = mvd1.getVersion( vId );
-			byte[] data2 = mvd2.getVersion( vId );
-			compareTwoByteArrays( data1, data2 );
+			char[] data1 = mvd1.getVersion( vId );
+			char[] data2 = mvd2.getVersion( vId );
+			compareTwoCharArrays( data1, data2 );
 		}
 	}
 	/**
@@ -826,13 +806,15 @@ public class Test
 			MVD mvd = MVDFile.internalise( mvdFile, null );
 			for ( int i=0;i<mvd.numVersions();i++ )
 			{
-				byte[] data = mvd.getVersion( i+1 );
+				char[] data = mvd.getVersion( i+1 );
+                String str = new String( data );
+                byte[] utf8Data = str.getBytes("UTF-8");
 				String shortName = mvd.getVersionShortName( i+1 );
 				File archiveFile = new File( archiveFolder, shortName );
 				if ( !archiveFile.exists() )
 					throw new MVDTestException("Archive file "
 						+shortName+" notFound");
-				if ( archiveFile.length() != data.length )
+				if ( archiveFile.length() != utf8Data.length )
 					throw new MVDTestException(
 						"Archive file and version in MVD not the same length");
 				System.out.print(".");
@@ -918,7 +900,7 @@ public class Test
 			String[] args2 = {"-c","description","-m",mvdName,"-d","new value"};
 			MvdTool.run( args2, out );
 			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-			PrintStream ps = new PrintStream( bos );
+			PrintStream ps = new PrintStream( bos, true, "UTF-8" );
 			String[] args3 = {"-c","description","-m",mvdName};
 			MvdTool.run( args3, ps );
 			ps.close();
@@ -1017,6 +999,28 @@ public class Test
 			doTestFailed( e );
 		}
 	}
+    /**
+     * Convert a byte array to a char array
+     * @param data the byte array
+     * @param enc its encoding
+     * @return a UTF-16 char array
+     */
+    private static char[] bytesToChars( byte[] data, String enc )
+    {
+        String str;
+        try
+        {
+            str = new String( data, enc );
+            
+        }
+        catch ( Exception e )
+        {
+            str = new String(data);
+        }
+        char[] chars = new char[str.length()];
+        str.getChars(0,chars.length,chars,0);
+        return chars;
+    }
 	/**
 	 * Build a single MVD from the files in the given folder
 	 * @param versions the src files
@@ -1034,7 +1038,8 @@ public class Test
 			File tempOutFile = new File( tempOutName );
 			if ( tempOutFile.exists() )
 				tempOutFile.delete();
-			PrintStream tempOut = new PrintStream( new FileOutputStream(tempOutFile) );
+            FileOutputStream fos = new FileOutputStream(tempOutFile);
+			PrintStream tempOut = new PrintStream( fos, true, "UTF-8" );
 			args2[5] = Integer.toString( vId );
 			MvdTool.run( args2, tempOut );
 			tempOut.close();
@@ -1043,9 +1048,11 @@ public class Test
 			FileInputStream fis2 = new FileInputStream( tempOutFile );
 			byte[] data1 = new byte[(int)versions[i].length()];
 			byte[] data2 = new byte[(int)tempOutFile.length()];
-			fis1.read( data1 );
+            fis1.read( data1 );
 			fis2.read( data2 );
-			compareTwoByteArrays( data1, data2 );
+			char[] chars1 = bytesToChars( data1,"UTF-8");
+			char[] chars2 = bytesToChars( data2,"UTF-8");
+			compareTwoCharArrays( chars1, chars2 );
 		}
 	}
 	/**

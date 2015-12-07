@@ -24,6 +24,7 @@ import java.util.BitSet;
 import java.util.LinkedList;
 import java.util.ListIterator;
 import edu.luc.nmerge.exception.*;
+import java.io.UnsupportedEncodingException;
 /**
  * Represent one Pair in an MVD
  * @author Desmond Schmidt 18/8/07
@@ -37,7 +38,7 @@ public class Pair extends Serialiser
 	static final int INVERSE_MASK = 0x0FFFFFFF;
 	Pair parent;
 	LinkedList<Pair> children;
-	private byte[] data;
+	private char[] data;
 	public BitSet versions;
 	public static int pairId = 1;
 	/** parent id if subject of a transposition */
@@ -47,7 +48,7 @@ public class Pair extends Serialiser
 	 * @param versions its versions
 	 * @param data its data
 	 */
-	public Pair( BitSet versions, byte[] data )
+	public Pair( BitSet versions, char[] data )
 	{
 		this.versions = versions;
 		this.data = data;
@@ -123,24 +124,33 @@ public class Pair extends Serialiser
 	}
 	/**
 	 * Just get the length of the data, even if it is transposed.
-	 * @return the length of the pair in bytes
+	 * @return the length of the pair in chars
 	 */
 	public int length()
 	{
 		return (parent!=null)?parent.length():data.length;
 	}
+    /**
+	 * Just get the length of the UTF-8 byte data, even if it is transposed.
+	 * @return the length of the pair in bytes
+	 */
+	public int byteLength() throws UnsupportedEncodingException
+	{
+        String str = new String(data);
+		return (parent!=null)?parent.byteLength():str.getBytes("UTF-8").length;
+	}
 	/**
 	 * Return the size of the data used by this pair
 	 * @return the size of the data only
 	 */
-	int dataSize()
+	int dataSize() throws UnsupportedEncodingException
 	{
 		if ( parent!=null || isHint() )
 			return 0;
 		else if ( data == null )
 			return 0;
 		else
-			return data.length;
+			return byteLength();
 	}
 	/**
 	 * Fix a data offset in a pair already serialised
@@ -187,37 +197,44 @@ public class Pair extends Serialiser
 	int serialisePair( byte[] bytes, int p, int setSize, int dataOffset, 
 		int dataTableOffset, int parentId ) throws MVDException
 	{
-		int oldP = p;
-		int flag = 0;
-		if ( parent != null )
-			flag = CHILD_FLAG;
-		else if ( children != null )
-			flag = PARENT_FLAG;
-		if ( bytes.length > p + pairSize(setSize) )
-		{
-			p += serialiseVersions( bytes, p, setSize );
-			// write data offset
-			// can't see the point of this any more
-			//writeInt( bytes, p, (children==null)?dataOffset:-dataOffset );
-			writeInt( bytes, p, dataOffset );
-			p += 4;
-			// write data length ORed with the parent/child flag
-			int dataLength = (data==null)?0:data.length; 
-			dataLength |= flag;
-			writeInt( bytes, p, dataLength );
-			p += 4;
-			if ( parentId != MVD.NULL_PID )
-			{
-				writeInt( bytes, p, parentId );
-				p += 4;
-			}
-			// write actual data
-			if ( parent == null && !isHint() )
-				p += writeData( bytes, dataTableOffset+dataOffset, data );
-		}
-		else
-			throw new MVDException( "No room for pair during serialisation" );
-		return p - oldP;
+		try
+        {
+            int oldP = p;
+            int flag = 0;
+            if ( parent != null )
+                flag = CHILD_FLAG;
+            else if ( children != null )
+                flag = PARENT_FLAG;
+            if ( bytes.length > p + pairSize(setSize) )
+            {
+                p += serialiseVersions( bytes, p, setSize );
+                // write data offset
+                // can't see the point of this any more
+                //writeInt( bytes, p, (children==null)?dataOffset:-dataOffset );
+                writeInt( bytes, p, dataOffset );
+                p += 4;
+                // write data length ORed with the parent/child flag
+                int dataLength = (data==null)?0:this.byteLength(); 
+                dataLength |= flag;
+                writeInt( bytes, p, dataLength );
+                p += 4;
+                if ( parentId != MVD.NULL_PID )
+                {
+                    writeInt( bytes, p, parentId );
+                    p += 4;
+                }
+                // write actual data
+                if ( parent == null && !isHint() )
+                    p += writeData( bytes, dataTableOffset+dataOffset, getData() );
+            }
+            else
+                throw new Exception( "No room for pair during serialisation" );
+            return p - oldP;
+        }
+        catch ( Exception e )
+        {
+            throw new MVDException(e);
+        }
 	}
 	/**
 	 * Serialise the versions
@@ -276,14 +293,14 @@ public class Pair extends Serialiser
 	 */
 	public boolean isEmpty()
 	{
-		return dataSize() == 0;
+		return data.length == 0;
 	}
 	/**
 	 * Does this pair start with the given prefix?
 	 * @param prefix the given prefix
 	 * @return true if it does, else false
 	 */
-	public boolean startsWith( byte[] prefix )
+	public boolean startsWith( char[] prefix )
 	{
         int i;
 		for ( i=0;i<prefix.length&&i<data.length;i++ )
@@ -292,6 +309,15 @@ public class Pair extends Serialiser
 				return false;
         }
 		return i==prefix.length;
+	}
+	/**
+	 * Does this pair start with a letter?
+	 * @return true if it does, else false
+	 */
+	public boolean startsWithLetter()
+	{
+        char[] dataCopy = this.getChars();
+        return dataCopy.length > 0 && Character.isLetter(dataCopy[0]);
 	}
 	/**
 	 * Convert a pair to a human-readable form
@@ -335,22 +361,39 @@ public class Pair extends Serialiser
 	{
 		return parent;
 	}
+    public char[] getChars()
+    {
+        if ( parent != null )
+            return parent.getChars();
+        else
+            return data;
+    }
 	/**
 	 * Get the data of this pair
 	 * @return this pair's data or that of its parent
 	 */
-	public byte[] getData()
+	public byte[] getData() throws MVDException
 	{
-		if ( parent != null )
-			return parent.getData();
-		else
-			return data;
+		try
+        {
+            if ( parent != null )
+                return parent.getData();
+            else
+            {
+                String str = new String(data);
+                return str.getBytes("UTF-8");
+            }
+        }
+        catch ( Exception e )
+        {
+            throw new MVDException(e);
+        }
 	}
 	/**
 	 * Set the data of this pair. Not to be used publicly!
 	 * @param data the new data for this pair
 	 */
-	void setData( byte[] data )
+	void setData( char[] data )
 	{
 		this.data = data;
 	}

@@ -255,7 +255,7 @@ public class MUM implements Comparable<MUM>
 				{
 					// first character
 					MatchThreadDirect mtd;
-					byte[] data = a.getData();
+					char[] data = a.getData();
 					if ( a.from != subGraph.start )
                         prevChars = a.from.getPrevChars(
                             subGraph.constraint,subGraph.start);
@@ -807,7 +807,7 @@ public class MUM implements Comparable<MUM>
 		// now put it back
 		graph.start.addOutgoing( a );
 		// create an empty bridge arc 
-		Arc b = new Arc( bs, new byte[0] );
+		Arc b = new Arc( bs, new char[0] );
 		graph.start.addOutgoing( b );
 		n.addIncoming( b );
 		Graph g = new Graph( graph.start, n, b.versions, 
@@ -837,7 +837,7 @@ public class MUM implements Comparable<MUM>
 		// now put it back
 		graph.end.addIncoming( a );
 		// create an empty bridge arc
-		Arc b = new Arc( bs, new byte[0] );
+		Arc b = new Arc( bs, new char[0] );
 		graph.end.addIncoming( b );
 		n.addOutgoing( b );
 		Graph g = new Graph( n, graph.end, b.versions, 
@@ -934,7 +934,7 @@ public class MUM implements Comparable<MUM>
 	{
 		BitSet bs = new BitSet();
 		bs.set( version );
-		return new Arc( bs, new byte[0] );
+		return new Arc( bs, new char[0] );
 	}
 	/**
 	 * The special arc needs to be split on the left
@@ -943,8 +943,8 @@ public class MUM implements Comparable<MUM>
 	 */
 	SpecialArc splitOffLeftArc()
 	{
-		byte[] leftArcData = new byte[match.dataOffset];
-		byte[] arcData = arc.getData();
+		char[] leftArcData = new char[match.dataOffset];
+		char[] arcData = arc.getData();
 		assert arc.parent==null&&arc.children==null;
 		for ( int i=0;i<match.dataOffset;i++ )
 		{
@@ -962,8 +962,8 @@ public class MUM implements Comparable<MUM>
 	SpecialArc splitOffRightArc()
 	{
 		int len = arc.dataLen()-(match.length+match.dataOffset);
-		byte[] rightArcData = new byte[len];
-		byte[] arcData = arc.getData();
+		char[] rightArcData = new char[len];
+		char[] arcData = arc.getData();
 		assert arc.parent==null&&arc.children==null;
 		for ( int j=0,i=match.dataOffset+match.length;i<arcData.length;i++,j++ )
 		{

@@ -1,4 +1,4 @@
-package edu.luc.qut.nmerge;
+package edu.luc.nmerge;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -34,4 +34,25 @@ public class Utilities {
 	        }
 		}
 	}
+    /**
+     * Convert byte array to char array
+     * @param data the byte array
+     * @param enc its encoding
+     * @return the equivalent char array
+     */
+    public static char[] bytesToChars( byte[] data, String enc )
+    {
+        String str;
+        try
+        {
+            str = new String( data, enc );
+        }
+        catch ( Exception e )
+        {
+            str = new String(data);
+        }
+        char[] chars = new char[str.length()];
+        str.getChars(0,chars.length,chars,0);
+        return chars;
+    }
 }

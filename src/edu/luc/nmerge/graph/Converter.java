@@ -212,7 +212,7 @@ public class Converter
 		HashMap<Pair,Arc> kids )
 	{
 		nArcs++;
-		byte[] pData = (p.isChild()||p.isHint())?null:p.getData();
+		char[] pData = (p.isChild()||p.isHint())?null:p.getChars();
 		Arc a = new Arc( cloneVersions(p.versions), pData );
 		if ( p.isChild() )
 		{
@@ -282,7 +282,7 @@ public class Converter
 				//System.out.println("creating hint at "+hint);
 				clique.set( 0 );
 				// create a hint
-				Pair h = new Pair(clique,new byte[0]);
+				Pair h = new Pair(clique,new char[0]);
 				pairs.add( h );
 			}
 			hint = printDown( pairs, selected, hint );

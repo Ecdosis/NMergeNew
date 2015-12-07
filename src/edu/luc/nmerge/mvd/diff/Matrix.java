@@ -7,8 +7,8 @@ package edu.luc.nmerge.mvd.diff;
 
 public class Matrix
 {
-        byte[] A;
-        byte[] B;
+        char[] A;
+        char[] B;
         int goalIndex;
         int d;
         Diagonal best;
@@ -20,7 +20,7 @@ public class Matrix
      * @param str1 the first string
      * @param str2 the second string
      */
-    protected Matrix( byte[] str1, byte[] str2 )
+    protected Matrix( char[] str1, char[] str2 )
     {
         this.A = str1;
 		// B is the old or base version
@@ -40,7 +40,7 @@ public class Matrix
      * @param base the original version already in the MVD
      * @return an array of Diffs contained only changed diffs
      */
-    public static Diff[] computeBasicDiffs( byte[] newtext, byte[] base )
+    public static Diff[] computeBasicDiffs( char[] newtext, char[] base )
     {
         Matrix m = new Matrix( newtext, base );
         m.compute();
@@ -52,7 +52,7 @@ public class Matrix
      * @param base the original version already in the MVD
      * @return an array of Diffs containing inserts dels and exchanges
      */
-    public static Diff[] computeDetailedDiffs( byte[] newtext, byte[] base )
+    public static Diff[] computeDetailedDiffs( char[] newtext, char[] base )
     {
         Matrix m = new Matrix( newtext, base );
         m.compute();

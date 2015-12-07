@@ -10,10 +10,10 @@ import java.util.BitSet;
  */
 public class PrevChar 
 {
-	/** the previous byte to some starting-point 
+	/** the previous char to some starting-point 
 	 * of a match in the graph */
-	byte previous;
-	/** set of version that this byte belongs 
+	char previous;
+	/** set of version that this char belongs 
 	 * to (the versions of its arc) */
 	BitSet versions;
 	/**
@@ -22,7 +22,7 @@ public class PrevChar
 	 * belongs to
 	 * @param previous the previous byte
 	 */
-	PrevChar( BitSet versions, byte previous )
+	PrevChar( BitSet versions, char previous )
 	{
 		this.versions = versions;
 		this.previous = previous;

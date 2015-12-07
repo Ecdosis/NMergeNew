@@ -138,7 +138,7 @@ public class MatchThreadDirect implements Runnable
 	 */
 	public void run() 
 	{
-		byte[] data = arc.getData();
+		char[] data = arc.getData();
 		while ( first < data.length 
 			&& st.advance(pos,data[first]) )
 		{
@@ -206,7 +206,7 @@ public class MatchThreadDirect implements Runnable
 		int prevCharIndex = pos.edgePos-(pathLen+1);
 		if ( prevCharIndex >= 0 )
 		{
-			byte dataPrevChar = mum.arc.getData()[prevCharIndex];
+			char dataPrevChar = mum.arc.getData()[prevCharIndex];
 			if ( prevCharIndex >= 0 )
 			{
 				BitSet pathVersions = new BitSet();

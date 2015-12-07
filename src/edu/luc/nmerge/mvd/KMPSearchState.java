@@ -11,7 +11,7 @@ import edu.luc.nmerge.exception.MVDException;
  */
 public class KMPSearchState 
 {
-	byte[] pattern;
+	char[] pattern;
 	BitSet v;
 	KMPSearchState following;
 	int[] next;
@@ -21,7 +21,7 @@ public class KMPSearchState
 	 * Initialisation is easy.
 	 * @param pattern the pattern to search for
 	 */
-	public KMPSearchState( byte[] pattern, BitSet v )
+	public KMPSearchState( char[] pattern, BitSet v )
 	{
 		this.v = v;
 		this.pattern = pattern;
@@ -47,7 +47,7 @@ public class KMPSearchState
 	 * @param pattern the pattern as a byte array in any encoding
 	 * @return an array of next indices
 	 */
-	private static int[] initNext( byte[] pattern ) 
+	private static int[] initNext( char[] pattern ) 
 	{
 		int[] next = new int [pattern.length];
 		int i = 0, j = -1;
@@ -159,11 +159,11 @@ public class KMPSearchState
 		return new KMPSearchState( this, newBs );
 	}
 	/**
-	 *	Update the search state with a new byte
+	 *	Update the search state with a new char
 	 *	@param c the character from the text to update with
 	 *	@return true if a match, false otherwise
 	 */
-	boolean update( byte c )
+	boolean update( char c )
 	{
 		if ( pattern[pos] == c )
 		// we have a match

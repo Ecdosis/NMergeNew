@@ -19,6 +19,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package edu.luc.nmerge.mvd;
+import edu.luc.nmerge.mvd.navigator.TextNavigator;
 import edu.luc.nmerge.mvd.diff.Diff;
 import java.util.*;
 import java.io.UnsupportedEncodingException;
@@ -39,6 +40,7 @@ import edu.luc.nmerge.mvd.diff.Matrix;
 import edu.luc.nmerge.mvd.table.TableView;
 import edu.luc.nmerge.mvd.table.FragKind;
 import edu.luc.nmerge.mvd.table.Options;
+import edu.luc.nmerge.mvd.navigator.TextNavigator;
 
 /**
  * Represent a multi-version document.
@@ -333,11 +335,11 @@ public class MVD extends Serialiser implements Serializable
 				else
 					newStates = cs.getStates();
 				current = new Chunk( encoding, ts.getId(), 
-					newStates, p.getData(), backup );
+					newStates, p.getChars(), backup );
 				current.setVersion( u );
 			}
 			else
-				current.addData( p.getData() );
+				current.addData( p.getChars() );
 			if ( i < pairs.size()-1 )
 				i = next( i+1, u );
 			else
@@ -401,7 +403,88 @@ public class MVD extends Serialiser implements Serializable
 		}
 		return -1;
 	}
-	/**
+    /**
+     * Look forward from a position for a string in a given version
+     * @param str the string to seek
+     * @param index the first index of the pair 
+     * @param offset the offset into that pair's data
+     * @param v the version to seek
+     * @return true if it matched
+     */
+    private boolean findForward( String str, int index, int offset, int v )
+    {
+        TextNavigator tn = new TextNavigator(this,index,offset,v);
+        int i;
+        for ( i=0;i<str.length();i++ )
+        {
+            if ( tn.next() == str.charAt(i) )
+                offset++;
+            else
+                break;
+        }
+        return i==str.length();
+    }
+    /**
+     * Find a string backwards in a given version
+     * @param str the string to find
+     * @param index the index of the pair starting from
+     * @param offset the offset in the pair to search first (may be -1)
+     * @param v the version to follow
+     * @return true if it was found
+     */
+    private boolean findBackward( String str, int index, int offset, int v )
+    {
+        TextNavigator tn = new TextNavigator(this,index,offset,v);
+        int i;
+        for ( i=str.length()-1;i>=0;i-- )
+        {
+            if ( tn.prev() == str.charAt(i) )
+                offset--;
+            else
+                break;
+        }
+        return i==-1;
+    }
+    /**
+     * Find a literal query 
+     * @param query the literal text to find
+     * @param mvdPos the start-position of the first term in the mvd
+     * @param firstTerm the first term of the query 
+     * @return true if it was there
+     */
+	public boolean find( String query, int mvdPos, String firstTerm )
+    {
+        int pos = 0;
+        String rhs = query;
+        String lhs = "";
+        boolean found = false;
+        int index = query.indexOf(firstTerm);
+        if ( index > 0 )
+        {
+            rhs = query.substring(index);
+            lhs = query.substring(0,index);
+        }
+        for ( int i=0;i<pairs.size();i++ )
+        {
+            Pair p = pairs.get(i);
+            if ( p.length()+pos > mvdPos )
+            {
+                for ( int v=p.versions.nextSetBit(0);v>=0;v=p.versions.nextSetBit(v+1) )
+                {
+                    found = findForward(rhs,i,mvdPos-pos,v);
+                    if ( found && lhs.length()>0 )
+                        found = findBackward(lhs,i,(mvdPos-pos)-1,v);
+                    if ( found ) 
+                        break;
+                }
+            }
+            if ( found ) 
+                break;
+            pos += p.length();
+        }
+        return found;
+    }
+    /**
 	 * Search for a pattern. Return multiple matches if requested 
 	 * as an array of Match objects
 	 * @param pattern the pattern to search for
@@ -409,7 +492,7 @@ public class MVD extends Serialiser implements Serializable
 	 * @param multiple if true return all hits; otherwise only the first 
 	 * @return an array of matches
 	 */
-	public Match[] search( byte[] pattern, BitSet bs, boolean multiple ) 
+	public Match[] search( char[] pattern, BitSet bs, boolean multiple ) 
 		throws Exception
 	{
 		KMPSearchState inactive = null;
@@ -444,10 +527,10 @@ public class MVD extends Serialiser implements Serializable
 					}
 					s = sequential;
 				}
-				// now process each byte of the pair
+				// now process each char of the pair
 				if ( active != null )
 				{
-					byte[] data = temp.getData();
+					char[] data = temp.getChars();
 					for ( int j=0;j<data.length;j++ )
 					{
 						KMPSearchState ss = active;
@@ -735,7 +818,7 @@ public class MVD extends Serialiser implements Serializable
 	 * @param data the new version's data
 	 * @throws Exception if something went wrong
 	 */
-    private void add( Graph original, short version, byte[] data )
+    private void add( Graph original, short version, char[] data )
         throws Exception
     {
         Graph g = original;
@@ -805,10 +888,10 @@ public class MVD extends Serialiser implements Serializable
      * @param mergeSharedVersions if true merge all versions sharing the
      * same text in the original to the replacement text
      */
-    private void revise( Graph original, short version, byte[] data,
+    private void revise( Graph original, short version, char[] data,
         boolean mergeSharedVersions ) throws Exception
     {
-        byte[] base = getVersion( version );
+        char[] base = getVersion( version );
         Diff[] diffs = Matrix.computeBasicDiffs( data, base );
         TreeMap<SpecialArc,Graph> specials =
 			new TreeMap<SpecialArc,Graph>(new SpecialComparator());
@@ -825,7 +908,7 @@ public class MVD extends Serialiser implements Serializable
             Graph g = miniGraphs[i];
             BitSet shared = g.getSharedVersions(version);
             g.removeVersions( shared );
-			byte[] diffData = new byte[diffs[i].newLen()];
+			char[] diffData = new char[diffs[i].newLen()];
 			int offset = diffs[i].newOff();
 			for ( int j=0;j<diffData.length;j++ )
 				diffData[j] = data[offset+j];
@@ -847,7 +930,7 @@ public class MVD extends Serialiser implements Serializable
 	 * @return percentage of the new version that was unique, or 0 
 	 * if this was the first version
 	 */
-	public float update( short version, byte[] data,
+	public float update( short version, char[] data,
         boolean mergeSharedVersions ) throws Exception
 	{
 		// to do: if version already exists, remove it first
@@ -861,9 +944,7 @@ public class MVD extends Serialiser implements Serializable
         else
             add( original, version, data );
         pairs = con.serialise();
-		if ( encoding.toUpperCase().equals("UTF-8") )
-			removeUTF8Splits();
-        if ( timing )
+		if ( timing )
 		{
 			String finishTime = new Long(System.currentTimeMillis()
 				-startTime).toString();
@@ -874,184 +955,8 @@ public class MVD extends Serialiser implements Serializable
 			return 0.0f;
 		else
 			return getPercentUnique( version );
-	}
-	/**
-	 * Remove split multi-byte UTF-8 characters. A UTF-8 character split 
-	 * between two pairs will give rise to invalid characters if the mvd 
-	 * is written out. Correct this by moving any orphaned character-
-	 * sequence starts to the start of the following pair. We don't change
-	 * the graph structure just its content a little bit.
-	 */
-	private void removeUTF8Splits()
-	{
-		for ( int i=0;i<pairs.size();i++ )
-		{
-			Pair p = pairs.get(i);
-			if ( p.dataSize() > 0 )
-			{
-				byte[] data = pairs.get(i).getData();
-				int len = 0;
-				/*
-				 * A split utf-8 character's length varies according to 
-				 * the bit combination at the start. Since we only take 
-				 * incomplete characters over to the next pair we 
-				 * need only examine bytes starting a sequence that cannot  
-				 * finish before the end of the pair's data.
-				 */
-				if ( data.length>2 )
-                {
-                    byte d3 = data[data.length-3];
-                    if ( (d3&0xF8)==0xF0 )
-                        len = 3;
-                }
-                if ( len==0 && data.length>1 )
-                {
-                    byte d2 = data[data.length-2];
-                    if ( (d2&0xF0)==0xE0 ||(d2&0xF8)==0xF0 )
-                        len = 2;
-                }
-                if ( len==0 && data.length>0 )
-                {
-                    byte d1 = data[data.length-1];
-                    if ( (d1&0xE0)==0xC0 ||(d1&0xF0)==0xE0 
-                            ||(d1&0xF8)==0xF0 )
-                        len = 1;
-                }
-				if ( len > 0 && i < pairs.size()-1 )
-				{
-					// preserve the data that stays put
-					byte[] newData = new byte[data.length-len];
-					byte[] prefix = new byte[len];
-					int j = data.length-len;
-					for ( int k=0;k<j;k++ )
-						newData[k] = data[k];
-					// extract the portion to move
-					for ( int k=0;k<len;k++ )
-						prefix[k] = data[j+k];
-					// find all the subsequent pairs 
-					// that share a version with this pair
-					// and add the prefix onto them
-					BitSet seekSet = new BitSet();
-					seekSet.or( p.versions );
-					int m = i+1;
-					while ( !seekSet.isEmpty() && m < pairs.size() )
-					{
-						Pair q = pairs.get( m );
-						if ( !q.isHint() && !q.isEmpty() 
-                             && q.versions.intersects(seekSet) )
-						{
-							// We don't update children because they
-							// don't own any data. Their parents will 
-							// get updated in exactly the right way.
-							// (i.e. when the parent is updated elsewhere)
-							// NB if A and B pairs are followed by AB
-							// then only the prefix from the end of A should 
-							// be prepended to the AB pair
-							if ( !q.isChild() && !q.startsWith(prefix) )
-							{
-								byte[] qData = q.getData();
-								byte[] newQData = new byte[qData.length+len];
-								for ( int k=0;k<len;k++ )
-									newQData[k] = prefix[k];
-								for ( int k=0;k<qData.length;k++ )
-									newQData[k+len] = qData[k];
-								q.setData( newQData );
-							}
-							seekSet.andNot( q.versions );
-						}
-						m++;
-					}
-					if ( !p.isChild() )
-						p.setData( newData );
-				}
-			}
-		}
-        //verifyUTF8();
-	}
-    /**
-     * Verify that all the sequences of bytes in all the pairs are valid utf-8
-     */
-    void verifyUTF8()
-    {
-        for ( int i=0;i<pairs.size();i++ )
-        {
-            byte[] data = pairs.get(i).getData();
-            int state = 0;
-            for ( int j=0;j<data.length;j++ )
-            {
-                switch ( state )
-                {
-                    case 0: // looking for utf-lead byte
-                        if ( (data[j]&0xF8)==0xF0 )
-                            state = 1;
-                        else if ( (data[j]&0xF0)==0xE0 )
-                            state = 2;
-                        else if ( (data[j]&0xE0)==0xC0 )
-                            state = 3;
-                        else if ( (data[j]&0xC0)==0x80 )
-                        {
-                            Pair p = pairs.get(i);
-                            if ( p.isChild() )
-                                System.out.println("offending pair is a child. j="+j);
-                            else if ( p.isHint() )
-                                System.out.println("offending pair is a hint. j="+j);
-                            else if ( p.isParent() )
-                                System.out.println("offsending pair is parent. j="+j);
-                            else if ( p.isEmpty() )
-                                System.out.println("offsending pair is empty. j="+j);
-                            else
-                                System.out.println("offending pair is a normal pair of length "+p.dataSize());
-                        }
-                        break;
-                    case 1: // 2nd byte of four-byte sequence
-                        if ( (data[j]&0xC0)==0x80 )
-                            state = 4;
-                        else
-                        {
-                            state = 0;
-                            System.out.println("Invalid byte 2 of 4-byte sequence:"+data[j] );
-                        }
-                        break;
-                    case 2: // second byte of 3-byte sequence
-                        if ( (data[j]&0xC0)==0x80 )
-                            state = 5;
-                        else
-                        {
-                            state = 0;
-                            System.out.println("Invalid byte 2 of 3-byte sequence:"+data[j] );
-                        }
-                        break;
-                    case 3: // 2nd byte of 2-byte sequence
-                        if ( (data[j]&0xC0)!=0x80 )
-                            System.out.println("Invalid byte 2 of 3-byte sequence:"+data[j] );
-                        state = 0;
-                        break;
-                    case 4: // third byte of 4-byte sequence
-                        if ( (data[j]&0xC0)==0x80 )
-                            state = 6;
-                        else
-                        {
-                            state = 0;
-                            System.out.println("Invalid byte 3 of 4-byte sequence:"+data[j] );
-                        }
-                        break;
-                    case 5: // 3nd byte of 3-byte sequence
-                        if ( (data[j]&0xC0)!=0x80 )
-                            System.out.println("Invalid byte 3 of 3-byte sequence:"+data[j] );
-                        state = 0;
-                        break;
-                    case 6: // 4th byte of 4-byte sequence
-                        if ( (data[j]&0xC0)!=0x80 )
-                            System.out.println("Invalid byte 4 of 4-byte sequence:"+data[j] );
-                        state = 0;
-                        break;
-                }
-            }
-            if ( state != 0 )
-                System.out.println("Ended in state "+state+"unexpectedly");
-        }
     }
-	/**
+    /**
 	 * Get the percentage of the given version that is unique
 	 * @param version the version to compute uniqueness for
 	 * @return the percent as a float
@@ -1144,7 +1049,7 @@ public class MVD extends Serialiser implements Serializable
 	private SuffixTree makeSuffixTree( SpecialArc special ) 
 		throws MVDException
 	{
-		byte[] specialData;
+		char[] specialData;
 		specialData = special.getData();
 		return new SuffixTree( specialData, false );
 	}
@@ -1550,9 +1455,9 @@ public class MVD extends Serialiser implements Serializable
 	/**
 	 * Retrieve a version, copying it from the MVD
 	 * @param version the version to retrieve
-	 * @return a byte array containing all the data of that version
+	 * @return a char array containing all the data of that version
 	 */
-	public byte[] getVersion( int version )
+	public char[] getVersion( int version )
 	{
 		int length = 0;
 		// measure the length
@@ -1564,7 +1469,7 @@ public class MVD extends Serialiser implements Serializable
 				length += p.length();
 			}
 		}
-		byte[] result = new byte[length];
+		char[] result = new char[length];
 		// now copy it
 		int k,i;
 		for ( k=0,i=0;i<pairs.size();i++ )
@@ -1573,7 +1478,7 @@ public class MVD extends Serialiser implements Serializable
 			if ( p.versions.nextSetBit(version)==version )
 			{
 				for ( int j=0;j<p.length();j++ )
-					result[k++] = p.getData()[j];
+					result[k++] = p.getChars()[j];
 			}
 		}
 		return result;
@@ -1652,7 +1557,7 @@ public class MVD extends Serialiser implements Serializable
 		return v.shortName;
 	}
 	/**
-	 * For each version in the MVD calculate its length in bytes
+	 * For each version in the MVD calculate its length in chars
 	 * @return an array of lengths where each index represents 
 	 * one version id-1 and the values are the lengths of that 
 	 * version
@@ -1968,7 +1873,7 @@ public class MVD extends Serialiser implements Serializable
      * @param base the base version of the range
      * @param offset the offset into base
      * @param len the length of the range
-     * @return an array of vids that share all the bytes of the range
+     * @return an array of vids that share all the chars of the range
      */
     public String[] getVersionsOfRange( short base, int offset, int len )
     {
@@ -2112,7 +2017,7 @@ public class MVD extends Serialiser implements Serializable
      * @param datum
      * @return true if it is general punctuation, else false
      */
-    boolean isPunctuation( byte datum )
+    boolean isPunctuation( char datum )
     {
         int type = Character.getType(datum);
         return type == Character.END_PUNCTUATION
@@ -2127,7 +2032,7 @@ public class MVD extends Serialiser implements Serializable
      */
     void wordExtendBackwards( Variant v )
     {
-        byte pc;
+        char pc;
         int index = v.startIndex;
         int offset = v.startOffset;
         Pair p = pairs.get( index );
@@ -2146,7 +2051,7 @@ public class MVD extends Serialiser implements Serializable
                     break;
             }
             // offset points to the previous character
-            pc = p.getData()[offset];
+            pc = p.getChars()[offset];
             if ( Character.isWhitespace((char)pc)||isPunctuation(pc) )
                 break;
             else
@@ -2164,7 +2069,7 @@ public class MVD extends Serialiser implements Serializable
      */
     void wordExtendForwards( Variant v )
     {
-        byte pc;
+        char pc;
         Pair p;
         int index = v.endIndex;
         int offset = v.length;
@@ -2189,7 +2094,7 @@ public class MVD extends Serialiser implements Serializable
                 else
                     break;
             }
-            pc = p.getData()[offset];
+            pc = p.getChars()[offset];
             if ( Character.isWhitespace((char)pc)||isPunctuation(pc) )
                 break;
             else
@@ -2664,11 +2569,11 @@ public class MVD extends Serialiser implements Serializable
                 if ( p.length()>0 )
                 {
                     int deleted = 0;
-                    byte[] data = p.getData();
+                    char[] data = p.getChars();
                     if ( i == sPos.getIndex() )
                     {
                         int size = data.length-sPos.getPosition();
-                        byte[] dCopy = new byte[size];
+                        char[] dCopy = new char[size];
                         System.arraycopy( data, sPos.getPosition(), 
                             dCopy, 0, size ); 
                         data = dCopy;
@@ -2680,11 +2585,11 @@ public class MVD extends Serialiser implements Serializable
                         int remaining = data.length-del;
                         if ( remaining < 0 )
                             throw new Exception("size of range was < 0");
-                        byte[] eCopy = new byte[remaining];
+                        char[] eCopy = new char[remaining];
                         System.arraycopy( data, 0, eCopy, 0, remaining );
                         data = eCopy;
                     }
-                    String frag = new String(data,encoding);
+                    String frag = new String(data);
                     BitSet set = constrainVersions(p.versions,found);
                     if ( !p.versions.intersects(found) )
                         continue;

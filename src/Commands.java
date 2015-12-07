@@ -40,5 +40,6 @@ public enum Commands
 	UPDATE,
 	USAGE,
 	VARIANTS,
-	TREE;
+	TREE,
+    WORDS;
 }

@@ -18,15 +18,15 @@ public class Tracker
 {
     int x;
     int y;
-    byte[] xAxis;
-    byte[] yAxis;
+    char[] xAxis;
+    char[] yAxis;
     char[][] m;
     /**
      * Create a tracker
      * @param x its x-dimension
      * @param y its y-dimension
      */
-    Tracker( byte[] xAxis, byte[] yAxis )
+    Tracker( char[] xAxis, char[] yAxis )
     {
         this.x = xAxis.length;
         this.y = yAxis.length;

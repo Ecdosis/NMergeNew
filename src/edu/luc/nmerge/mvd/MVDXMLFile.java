@@ -253,9 +253,10 @@ public class MVDXMLFile
 				String data = pairNode.getTextContent();
 				BitSet version = buildVersion( versionsAttr.getTextContent(), 
 					hint );
-				byte[] pairData = null;
+				char[] pairData = null;
 				if ( data != null && data.length()>0 )
-					pairData = data.getBytes( encoding );
+					pairData = new char[data.length()];
+                data.getChars( 0,pairData.length,pairData,0 );
 				Pair p = new Pair( version, pairData );
 				if ( idAttr != null )
 				{

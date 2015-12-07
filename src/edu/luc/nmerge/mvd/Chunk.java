@@ -56,14 +56,14 @@ public class Chunk extends BracketedData
 	 * @param backup the backup version or NO_BACKUP
 	 */
 	public Chunk( String encoding, int id, ChunkState[] cs, 
-		byte[] data, short backup )
+		char[] data, short backup )
 	{
 		super( encoding, data );
 		this.states = new ChunkStateSet( cs, backup );
 		this.id = id;
 	}
 	/**
-	 * Create a Chunk from a byte array where the chunks are marked 
+	 * Create a Chunk from a char array where the chunks are marked 
 	 * up using the [statelist:id:version:...] syntax. "statelist" is 
 	 * a list of comma-separated chunk states and ":id" is used to 
 	 * link parent and child chunks. Square brackets in the text 
@@ -74,7 +74,7 @@ public class Chunk extends BracketedData
 	 * @param pos position in the byte array to read from
 	 * @param backup the backup version
 	 */
-	public Chunk( byte[] chunkData, int pos, short backup )
+	public Chunk( char[] chunkData, int pos, short backup )
 	{
 		super( Charset.defaultCharset().toString() );
 		int start = pos;
@@ -175,11 +175,11 @@ public class Chunk extends BracketedData
 	Chunk[] split( int offset )
 	{
 		// make the two data arrays
-		byte[] first = new byte[offset];
+		char[] first = new char[offset];
         System.arraycopy( realData, 0, first, 0, offset );
 		/*for ( int j=0;j<offset;j++ )
 			first[j] = realData[j];*/
-		byte[] second = new byte[realData.length-offset];
+		char[] second = new char[realData.length-offset];
 		for ( int i=0,j=offset;j<realData.length;j++,i++ )
 			second[i] = realData[j];
 		Chunk[] parts = new Chunk[2];
@@ -215,10 +215,10 @@ public class Chunk extends BracketedData
 	 * @param pos the offset to start reading from
 	 * @return the number of bytes consumed
 	 */
-	private int readVersion( byte[] chunkData, int pos )
+	private int readVersion( char[] chunkData, int pos )
 	{
 		int start = pos;
-		while ( Character.isDigit((char)chunkData[pos]) )
+		while ( Character.isDigit(chunkData[pos]) )
 			pos++;
 		int len = pos - start;
 		version = Short.parseShort( new String(chunkData,start,len) );
@@ -230,7 +230,7 @@ public class Chunk extends BracketedData
 	 * @param pos the offset to start reading from
 	 * @return the number of bytes consumed
 	 */
-	private int readId( byte[] chunkData, int pos )
+	private int readId( char[] chunkData, int pos )
 	{
 		int start = pos;
 		while ( Character.isDigit((char)chunkData[pos]) )
@@ -246,12 +246,13 @@ public class Chunk extends BracketedData
 	 * @param pos the first byte pos for the state name
 	 * @return the number of bytes read
 	 */
-	private int readHeader( byte[] chunkData, int pos )
+	private int readHeader( char[] chunkData, int pos )
 	{
 		int start = pos;
 		pos += readStates( chunkData, pos );
 		// read id and version
-		if ( chunkData[pos] == ':' &&(states.isParent() || states.isChild()) )
+		if ( chunkData[pos] == ':' &&(states.isParent() || states.isChild()
+            ||states.isMerged()) )
 		{
 			pos += 1;	// no, ++pos doesn't work
 			pos += readId( chunkData, pos );
@@ -269,7 +270,7 @@ public class Chunk extends BracketedData
 	 * @param pos the starting offset within chunkData
 	 * @return the number of bytes of chunkData consumed
 	 */
-	private int readStates( byte[] chunkData, int pos )
+	private int readStates( char[] chunkData, int pos )
 	{
 		int start = pos;
 		while ( chunkData[pos] != ':' )
@@ -286,7 +287,7 @@ public class Chunk extends BracketedData
 	 * @param pos the starting offset within chunkData
 	 * @return the number of bytes of chunkData consumed
 	 */
-	private int readState( byte[] chunkData, int pos )
+	private int readState( char[] chunkData, int pos )
 	{
 		int start = pos;
 		while ( chunkData[pos] != ':' && chunkData[pos] != ',' )
@@ -312,7 +313,7 @@ public class Chunk extends BracketedData
 	 * @return the data
 	 */
     @Override
-	public byte[] getData() 
+	public char[] getData() 
 	{
 		return realData;
 	}
@@ -344,7 +345,7 @@ public class Chunk extends BracketedData
 			sb.append( createHeader() );
 			try
 			{
-				sb.append( new String(realData,encoding) );
+				sb.append( realData );
 			}
 			catch ( Exception e )
 			{
@@ -369,7 +370,7 @@ public class Chunk extends BracketedData
 			sb.append( ":" );
             sb.append( Integer.toString(id) );
         }
-		if ( version != 0 )
+		if ( version != 0 && states.isFound() )
         {
 			sb.append( ":" );
             sb.append( Integer.toString(version) );

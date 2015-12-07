@@ -102,8 +102,7 @@ public class Node
 	{
 		if ( a.versions.intersects(outgoingSet) )
 			throw new MVDException(
-				"There is already an outgoing arc "
-				+"with that version");
+				"There is already an outgoing arc with that version");
 		outgoing.add( a );	
 		outgoingSet.or( a.versions );
 		printedOutgoing.or( a.versions );
@@ -173,7 +172,7 @@ public class Node
 		// prepare empty arc
 		BitSet bs = new BitSet();
 		bs.or( getVersions() );
-		byte[] data = new byte[0];
+		char[] data = new char[0];
 		Arc a = new Arc( bs, data );
 		// add our outgoing arcs to right
 		Arc[] array = new Arc[outgoing.size()];
@@ -607,7 +606,7 @@ public class Node
 			{
 				if ( a.dataLen() > 0 )
 				{
-					byte[] data = a.getData();
+					char[] data = a.getData();
                     BitSet prevVersions = new BitSet();
                     prevVersions.or( a.versions );
                     prevVersions.and( constraint );
@@ -744,7 +743,7 @@ public class Node
 			if ( !a.isParent() && !a.isChild() 
 				&& !b.isParent() && !b.isChild() )
 			{
-				byte[] cData = new byte[a.dataLen()+b.dataLen()];
+				char[] cData = new char[a.dataLen()+b.dataLen()];
 				BitSet bs = new BitSet();
 				bs.or( a.versions );
 				Arc c = new Arc( bs, cData );

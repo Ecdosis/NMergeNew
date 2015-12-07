@@ -173,7 +173,7 @@ public class Graph
 	 * @param position the position of the arc
 	 * @return the special, unaligned arc
 	 */
-	public SpecialArc addSpecialArc( byte[] data, int version, int position )
+	public SpecialArc addSpecialArc( char[] data, int version, int position )
 		throws MVDException
 	{
 		BitSet bs = new BitSet();
@@ -187,7 +187,7 @@ public class Graph
 	 * @param position the position of the arc
 	 * @return the special, unaligned arc
 	 */
-	public SpecialArc addSpecialArc( byte[] data, BitSet bs, int position )
+	public SpecialArc addSpecialArc( char[] data, BitSet bs, int position )
 		throws MVDException
 	{
 		SpecialArc a = new SpecialArc( bs, data, position );
@@ -201,9 +201,9 @@ public class Graph
 	/**
 	 * Get the data of the specified version
 	 * @param version the id of the version to read
-	 * @return the version's data as a byte array
+	 * @return the version's data as a char array
 	 */
-	byte[] getVersion( int version )
+	char[] getVersion( int version )
 	{
 		Node temp = start;
 		int len=0;
@@ -213,13 +213,13 @@ public class Graph
 			len += a.dataLen();
 			temp = a.to;
 		}
-		byte[] versionData = new byte[len];
+		char[] versionData = new char[len];
 		temp = start;
 		int j = 0;
 		while ( temp != null && temp != end )
 		{
 			Arc a = temp.pickOutgoingArc( version );
-			byte[] data = a.getData();
+			char[] data = a.getData();
 			for ( int i=0;i<data.length;i++ )
 				versionData[j++] = data[i];
 			temp = a.to;
@@ -244,7 +244,7 @@ public class Graph
 			while ( iter.hasNext() )
 			{
 				Arc a = iter.next();
-				byte[] data = a.getData();
+				char[] data = a.getData();
 				// calculate total length
 				totalLen += data.length;
 				BitSet bs = a.versions;

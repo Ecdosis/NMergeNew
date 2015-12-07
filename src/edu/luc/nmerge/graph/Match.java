@@ -41,7 +41,7 @@ public class Match
 	/** the length of the alignment in bytes */
 	int length;
 	/** the data of the match */
-	byte[] data;
+	char[] data;
 	/** the version to follow to locate the match*/
 	short version;
 	/** The Node to start the match from */
@@ -63,14 +63,14 @@ public class Match
 	 * @param data all the data of the special arc
 	 */
 	Match( Node start, int graphOffset, short version, int dataOffset, 
-		int length, byte[] data )
+		int length, char[] data )
 	{
 		this.graphOffset = graphOffset;
 		this.dataOffset = dataOffset;
 		this.version = version;
 		assert version >= 0;
 		this.length = length;
-		this.data = new byte[length];
+		this.data = new char[length];
 		this.start = start;
 		this.start.addMatch( this );
 		this.freq = 1;
@@ -347,7 +347,7 @@ public class Match
 			}
 			else 
 			{
-				byte[] arcData = a.getData();
+				char[] arcData = a.getData();
 				while ( compared < length && pos < a.dataLen() )
 				{
 					assert arcData[pos++] == data[compared++];

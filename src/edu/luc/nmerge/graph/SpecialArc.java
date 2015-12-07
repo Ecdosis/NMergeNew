@@ -39,7 +39,7 @@ public class SpecialArc extends Arc
 	 * @param data the data of the special arc
 	 * @param position the position of the arc along the new version
 	 */
-	public SpecialArc( BitSet versions, byte[] data, int position )
+	public SpecialArc( BitSet versions, char[] data, int position )
 	{
 		super( versions, data );
 		this.position = position;

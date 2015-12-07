@@ -554,6 +554,21 @@ public class MVDFile
 			mvd.addVersion( new Version(group, backup, shortName, longName) );
 		}
 	}
+    private static char[] toChars( byte[] bytes, String encoding )
+    {
+        String str;
+        try
+        {
+            str = new String(bytes,encoding);
+        }
+        catch ( Exception e )
+        {
+            str = new String(bytes);
+        }
+        char[] chars = new char[str.length()];
+        str.getChars(0,chars.length,chars,0);
+        return chars;
+    }
 	/**
 	 * Read the pairs table for an MVD from a byte array
 	 * @param data the byte array containing the version definitions
@@ -594,7 +609,7 @@ public class MVDFile
 				p += 4;
 				// transpose parent
 				copy = copyData( len, dataTableOffset+offset, data );
-				pair = new Pair( versions, copy );
+				pair = new Pair( versions, toChars(copy,mvd.encoding) );
 				Integer key = new Integer( pId );
 				// check for orphans of this parent
 				LinkedList<Pair> children = orphans.get( key );
@@ -644,7 +659,7 @@ public class MVDFile
 			{
 				// no transposition
 				copy = copyData( len, dataTableOffset+offset, data );
-				pair = new Pair( versions, copy );
+				pair = new Pair( versions, toChars(copy,mvd.encoding) );
 			}
 			mvd.addPair( pair );
 		}
