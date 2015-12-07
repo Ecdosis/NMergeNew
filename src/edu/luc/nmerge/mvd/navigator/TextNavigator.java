@@ -115,12 +115,17 @@ public class TextNavigator
             char[] data = p.getChars();
             char token = data[offset++];
             // prepare for next get
-            while ( index < pairs.size() && offset == data.length )
+            if ( offset == data.length )
             {
-                p = pairs.get(++index);
                 offset = -1;
-                if ( p.versions.nextSetBit(v)==v && p.length()>0 )
-                    offset = 0;
+                while ( index < pairs.size()-1 )
+                {
+                    p = pairs.get(++index);
+                    if ( p.versions.nextSetBit(v)==v && p.length()>0 )
+                        offset = 0;
+                }
+                if ( offset == -1 )
+                    token = (char)-1;
             }
             return token;
         }
@@ -166,7 +171,10 @@ public class TextNavigator
                     offset = data.length-1;
                 }
             }
-            return data[offset];
+            if ( offset == -1 )
+                return (char)-1;
+            else
+                return data[offset];
         }
     }
     /**

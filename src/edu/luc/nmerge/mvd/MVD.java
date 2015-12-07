@@ -417,9 +417,7 @@ public class MVD extends Serialiser implements Serializable
         int i;
         for ( i=0;i<str.length();i++ )
         {
-            if ( tn.next() == str.charAt(i) )
-                offset++;
-            else
+            if ( tn.next() != str.charAt(i) )
                 break;
         }
         return i==str.length();
@@ -439,14 +437,12 @@ public class MVD extends Serialiser implements Serializable
         for ( i=str.length()-1;i>=0;i-- )
         {
             if ( tn.prev() == str.charAt(i) )
-                offset--;
-            else
                 break;
         }
         return i==-1;
     }
     /**
-     * Find a literal query 
+     * Find a literal query using index search
      * @param query the literal text to find
      * @param mvdPos the start-position of the first term in the mvd
      * @param firstTerm the first term of the query 
