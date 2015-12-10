@@ -122,7 +122,10 @@ public class TextNavigator
                 {
                     p = pairs.get(++index);
                     if ( p.versions.nextSetBit(v)==v && p.length()>0 )
+                    {
                         offset = 0;
+                        break;
+                    }
                 }
                 if ( offset == -1 )
                     token = (char)-1;

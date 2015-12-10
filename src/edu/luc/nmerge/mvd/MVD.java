@@ -417,7 +417,8 @@ public class MVD extends Serialiser implements Serializable
         int i;
         for ( i=0;i<str.length();i++ )
         {
-            if ( tn.next() != str.charAt(i) )
+            char tnChar = tn.next();
+            if ( tnChar != str.charAt(i) )
                 break;
         }
         return i==str.length();
@@ -446,14 +447,15 @@ public class MVD extends Serialiser implements Serializable
      * @param query the literal text to find
      * @param mvdPos the start-position of the first term in the mvd
      * @param firstTerm the first term of the query 
-     * @return true if it was there
+     * @return the set of versions it was found in (may be empty)
      */
-	public boolean find( String query, int mvdPos, String firstTerm )
+	public BitSet find( String query, int mvdPos, String firstTerm )
     {
         int pos = 0;
         String rhs = query;
         String lhs = "";
         boolean found = false;
+        BitSet bs = new BitSet();
         int index = query.indexOf(firstTerm);
         if ( index > 0 )
         {
@@ -471,14 +473,14 @@ public class MVD extends Serialiser implements Serializable
                     if ( found && lhs.length()>0 )
                         found = findBackward(lhs,i,(mvdPos-pos)-1,v);
                     if ( found ) 
-                        break;
+                        bs.set(v);
                 }
             }
             if ( found ) 
                 break;
             pos += p.length();
         }
-        return found;
+        return bs;
     }
     /**
 	 * Search for a pattern. Return multiple matches if requested 
