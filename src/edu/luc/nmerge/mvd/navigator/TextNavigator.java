@@ -113,6 +113,8 @@ public class TextNavigator
         {
             Pair p = pairs.get(index);
             char[] data = p.getChars();
+            if ( offset < 0 )
+                System.out.println("offset < 0" );
             char token = data[offset++];
             // prepare for next get
             if ( offset == data.length )

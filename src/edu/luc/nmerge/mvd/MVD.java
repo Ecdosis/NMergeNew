@@ -475,9 +475,8 @@ public class MVD extends Serialiser implements Serializable
                     if ( found ) 
                         bs.set(v);
                 }
-            }
-            if ( found ) 
                 break;
+            }
             pos += p.length();
         }
         return bs;
@@ -1358,23 +1357,46 @@ public class MVD extends Serialiser implements Serializable
         sb2.append( description );
         sb2.append( "\n" );
         Set<String> keys = map.keySet();
-        Iterator<String> iter = keys.iterator();
-        while ( iter.hasNext() )
+        // add in the top-level names even though not in map
+        ArrayList<String> topLevel = map.get("");
+        int nTopLevel = 0;
+        if ( topLevel != null )
+            nTopLevel = topLevel.size();
+        String[] groupNames = new String[keys.size()+nTopLevel];
+        keys.toArray(groupNames);
+        if ( topLevel != null )
+            for ( int i=0;i<topLevel.size();i++ )
+                groupNames[keys.size()+i] = topLevel.get(i);
+        Arrays.sort(groupNames);
+        for ( int k=0;k<groupNames.length;k++ )
         {
-            String key = iter.next();
+            String key = groupNames[k];
+            if ( key.length()==0 )
+                continue;
             ArrayList<String> list = map.get( key );
-            sb2.append( key );
-            sb2.append( "\t" );
-            sb2.append( list.get(0) );
-            sb2.append( "\n" );
-            for ( int i=1;i<list.size();i++ )
+            // if the list is null it's a top level name
+            if ( list == null )
             {
-                int nTabs = countTabs(key) + 1;
-                for ( int j=0;j<nTabs;j++ )
-                    sb2.append( "\t" );
-                sb2.append( list.get(i) );
+                sb2.append("top");
+                sb2.append( "\t" );
+                sb2.append( key );
                 sb2.append( "\n" );
-            }   
+            }
+            else
+            {
+                sb2.append( key );
+                sb2.append( "\t" );
+                sb2.append( list.get(0) );
+                sb2.append( "\n" );
+                for ( int i=1;i<list.size();i++ )
+                {
+                    int nTabs = countTabs(key) + 1;
+                    for ( int j=0;j<nTabs;j++ )
+                        sb2.append( "\t" );
+                    sb2.append( list.get(i) );
+                    sb2.append( "\n" );
+                }
+            }
         }
         return sb2.toString();
     }
@@ -1511,7 +1533,7 @@ public class MVD extends Serialiser implements Serializable
         for ( int i=0;i<versions.size();i++ )
         {
             Version v = versions.get(i);
-            if ( v.shortName.contains(shortName) && v.group == groupId )
+            if ( v.shortName.endsWith(shortName) && v.group == groupId )
             {
                 vId = i+1;
                 break;
@@ -1867,13 +1889,13 @@ public class MVD extends Serialiser implements Serializable
         return getGroupPath(id)+"/"+getVersionShortName(id);
     }
     /**
-     * Get the versions that share a given range
-     * @param base the base version of the range
-     * @param offset the offset into base
-     * @param len the length of the range
-     * @return an array of vids that share all the chars of the range
+     * Get the versions of a range 
+     * @param base the version to look in
+     * @param offset the start offset of the range
+     * @param len the lenght of the range
+     * @return a bitset of version ids
      */
-    public String[] getVersionsOfRange( short base, int offset, int len )
+    public BitSet getVersionSetOfRange( short base, int offset, int len )
     {
         try
         {
@@ -1886,12 +1908,36 @@ public class MVD extends Serialiser implements Serializable
             {
                 bs.and(getPair(i).versions);
             }
-            String[] vids = new String[bs.cardinality()];
-            for ( int j=0,i=bs.nextSetBit(1);i>=0;i=bs.nextSetBit(i+1) ) 
+            return bs;
+        }
+        catch ( Exception e )
+        {
+            return null;
+        }
+    }
+    /**
+     * Get the versions that share a given range
+     * @param base the base version of the range
+     * @param offset the offset into base
+     * @param len the length of the range
+     * @return an array of vids that share all the chars of the range
+     */
+    public String[] getVersionsOfRange( short base, int offset, int len )
+    {
+        try
+        {
+            BitSet bs = getVersionSetOfRange( base, offset, len );
+            if ( bs != null )
             {
-                vids[j++] = getGroupPath((short)i)+"/"+getVersionShortName(i);
+                String[] vids = new String[bs.cardinality()];
+                for ( int j=0,i=bs.nextSetBit(1);i>=0;i=bs.nextSetBit(i+1) ) 
+                {
+                    vids[j++] = getGroupPath((short)i)+"/"+getVersionShortName(i);
+                }
+                return vids;
             }
-            return vids;
+            else
+                return new String[0];
         }
         catch ( Exception e )
         {
@@ -2516,6 +2562,62 @@ public class MVD extends Serialiser implements Serializable
         bs.or( original );
         bs.and( constraint );
         return bs;
+    }
+    /**
+     * Get a JSON representation of the entire MVD as a table
+     * @param base the version to regard as the base
+     * @param spec a specification of a comma-separated set of versions
+     * @return a JSON document
+     */
+    public String getTable( short base, String spec )
+    {
+        try
+        {
+            BitSet bs = convertVersions( spec );
+            if ( spec != null && spec.length()>0 )
+                bs = convertVersions( spec );
+            else
+            {
+                bs = new BitSet();
+                for ( int i=1;i<=versions.size();i++ )
+                    bs.set( i );
+            }
+            // so bs contains all the vesions we are interested in
+            // use default options for everything
+            EnumMap<Options,Object> options 
+                = new EnumMap<Options,Object>(Options.class);
+            options.put(Options.COMPACT,false);
+            options.put(Options.HIDE_MERGED,true);
+            options.put(Options.WHOLE_WORDS,true);
+            options.put(Options.FIRST_MERGEID,0);
+            options.put(Options.TABLE_ID,"json_table");
+            TableView view = new TableView( this.versions, base, bs, 
+                options );
+            for ( int i=0;i<=pairs.size()-1;i++ )
+            {
+                Pair p = pairs.get( i );
+                if ( p.length()>0 )
+                {
+                    char[] data = p.getChars();
+                    String frag = new String(data);
+                    BitSet set = constrainVersions(p.versions,bs);
+                    if ( !p.versions.intersects(bs) )
+                        continue;
+                    else if ( set.equals(bs) )
+                        view.addFragment( FragKind.merged, bs, frag );
+                    else if ( p.versions.nextSetBit(base) != base )
+                        view.addFragment( FragKind.inserted, set, frag );
+                    else // aligned with base
+                        view.addFragment( FragKind.aligned, set, frag );
+                }
+            }
+            return view.toJSONString();
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace( System.out );
+            return "";
+        }
     }
     /**
      * Compute a table view containing all the variants of a given base range

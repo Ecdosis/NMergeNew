@@ -3,7 +3,7 @@
  * and open the template in the editor.
  */
 package edu.luc.nmerge.mvd.table;
-
+import java.util.ArrayList;
 /**
  * Format the text contents of a cell
  * @author desmond
@@ -13,15 +13,15 @@ public class TableCell
     String tagName;
     String className;
     String currentTextClass;
-    StringBuilder sb;
+    ArrayList<TextSegment> segments;
     /** optional id of cell contents if not 0 */
     int id;
     
     TableCell( String tagName, String className )
     {
         this.tagName= tagName;
-        this.className = className;
-        this.sb = new StringBuilder();
+        this.segments = new ArrayList<TextSegment>();
+        this.segments.add( new TextSegment(className,"") );
     }
     /**
      * This is set during table writing only
@@ -32,47 +32,62 @@ public class TableCell
         this.id = id;
     }
     /**
-     * Convert contents to a simple string
+     * Convert contents to a JSON string
+     * @return a string
+     */
+    public String toJSONString()
+    {
+        StringBuilder json = new StringBuilder();
+        json.append( "{" );
+        if ( className !=null && className.length()>0 )
+        {
+            json.append( "\"class\":\"" );
+            json.append( className );
+            json.append( "\"," );
+        }
+        if ( id != 0 )
+        {
+            json.append( "\"id\":\"t" );
+            String idStr = Integer.toString(id);
+            json.append( idStr );
+            json.append( "\",\"segments\":[" );
+        }
+        for ( int i=0;i<segments.size();i++ )
+        {
+            json.append( segments.get(i).toJSONString() );
+            if ( i<segments.size()-1 )
+                json.append(", ");
+        }
+        json.append( "]}" );
+        return json.toString();
+    }
+    /**
+     * Convert contents to a HTML string
      * @return a string
      */
     @Override
     public String toString()
     {
-        int len = sb.length();
-        if ( len>0 )
-        {
-            if ( sb.charAt(0)==' ' )
-                sb.replace(0,1,"&nbsp;");
-            if ( sb.charAt(len-1)==' ' )
-                sb.replace(len-1,len,"&nbsp;");
-        }
+        StringBuilder sb = new StringBuilder();
         // start cell tag
-        int pos = 0;
-        sb.insert( pos++, "<" );
-        sb.insert( pos, tagName );
-        pos += tagName.length();
+        sb.append( "<" );
+        sb.append( tagName );
         if ( className !=null && className.length()>0 )
         {
-            sb.insert( pos, " class=\"" );
-            pos += 8;
-            sb.insert( pos, className );
-            pos += className.length();
-            sb.insert( pos, "\"" );
-            pos++;
+            sb.append( " class=\"" );
+            sb.append( className );
+            sb.append( "\"" );
         }
         if ( id != 0 )
         {
-            sb.insert( pos, " id=\"t" );
-            pos += 6;
+            sb.append( " id=\"t" );
             String idStr = Integer.toString(id);
-            sb.insert( pos, idStr );
-            pos += idStr.length();
-            sb.insert( pos, "\"" );
-            pos++;
+            sb.append( idStr );
+            sb.append( "\"" );
         }
-        sb.insert( pos, ">" );
-        if ( currentTextClass != null )
-            sb.append("</span>" );
+        sb.append( ">" );
+        for ( int i=0;i<segments.size();i++ )
+            sb.append( segments.get(i).toString() );
         sb.append( "</" );
         sb.append( tagName );
         sb.append( ">" );
@@ -85,17 +100,14 @@ public class TableCell
      */
     void add( String value, String textClassName )
     {
-        if ( textClassName != null && (currentTextClass == null 
-            || !currentTextClass.equals(textClassName)) )
+        TextSegment ts = segments.get(segments.size()-1);
+        if ( ts.className != textClassName )
         {
-            if ( currentTextClass != null )
-                sb.append("</span>" );
-            sb.append( "<span class=\"" );
-            sb.append( textClassName );
-            sb.append( "\">" );
+            TextSegment ts2 = new TextSegment( textClassName, value );
+            segments.add( ts2 );
         }
-        sb.append( value );
-        currentTextClass = textClassName;
+        else
+            ts.add( value );
     }
     /**
      * Add a simple text value
@@ -104,11 +116,13 @@ public class TableCell
     void add( String value )
     {
         // finish off previous text class
-        if ( currentTextClass != null )
+        TextSegment ts = segments.get(segments.size()-1);
+        if ( ts.className != null )
         {
-            sb.append("</span>");
-            currentTextClass = null;
+            TextSegment ts2 = new TextSegment(null, value );
+            segments.add( ts2 );
         }
-        sb.append( value );
+        else
+            ts.add( value );
     }
 }

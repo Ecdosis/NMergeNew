@@ -230,7 +230,7 @@ public class TableView
         {
             bs.or( rowSets[i] );
         }
-        Table table = new Table( bs, sigla, base );
+        Table table = new Table( bs, sigla, base, 0 );
         table.setID( this.firstID );
         table.setTableId( tableId );
         for ( int i=0;i<sections.size();i++ )
@@ -281,6 +281,23 @@ public class TableView
         try
         {
             str = toTable().toString();
+        }
+        catch ( Exception e )
+        {
+            e.printStackTrace(System.out);
+        }
+        return str;
+    }
+    /**
+     * Convert to HTML the hard way
+     * @return a HTML fragment as a table
+     */
+    public String toJSONString()
+    {
+        String str = null;
+        try
+        {
+            str = toTable().toJSONString();
         }
         catch ( Exception e )
         {

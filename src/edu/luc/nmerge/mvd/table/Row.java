@@ -185,6 +185,41 @@ class Row
         return nested&&versions.nextSetBit(base)!=base;
     }
     /**
+     * Convert to JSON
+     * @return a String
+     */
+    public String toJSONString()
+    {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        //boolean rowWithNesting = hasNestedTable();
+        if ( isHidden() )
+            sb.append("\"class\":\"hidden\"," );
+        //else if ( rowWithNesting )
+        //    sb.append(" class=\"nested\"" );
+        sb.append("\"cells\":[");
+        if ( nested )
+            sb.append("{\"class\":\"siglumhidden\",");
+        else
+            sb.append("{\"class\":\"siglumleft\",");
+        // write siglum
+        String versionsString = Utils.bitSetToString(sigla,versions);
+        sb.append("\"text\":\"");
+        sb.append( versionsString );
+        sb.append( "\"}," );
+        for ( int i=0;i<cells.size();i++ )
+        {
+            FragList fl = cells.get(i);
+            if ( fl.merged && fl.isBase )
+                fl.setID( id++ );
+            sb.append( fl.toJSONString() );
+            if ( i < cells.size()-1 )
+                sb.append(",");
+        }
+        sb.append("]}");
+        return sb.toString();
+    }
+    /**
      * Convert to HTML
      * @return a String
      */

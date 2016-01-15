@@ -15,22 +15,24 @@ public class Table extends Atom
     ArrayList<Row> rows;
     ArrayList<Version> sigla;
     short base;
-    /** Is this table nested inside another? */
-    boolean nested;
     int id;
     String tableId;
+    /** depth of nesting */
+    int depth;
     /**
      * Create a table    
      * @param bs the set of versions encompassed by this table
      * @param sigla the sigla (version descriptions)
      * @param base the base version
+     * @param depth the depth of nesting
      */
-    Table( BitSet bs, ArrayList<Version> sigla, short base )
+    Table( BitSet bs, ArrayList<Version> sigla, short base, int depth )
     {
         rows = new ArrayList<Row>();
         this.sigla = sigla;
         this.versions = bs;
         this.base = base;
+        this.depth = depth;
     }
     /**
      * Do we already have an empty row?
@@ -68,13 +70,13 @@ public class Table extends Atom
         }
         return total;
     }
-    /**
-     * Set the nested property
-     * @param value true if this is a nested table
-     */
-    void setNested( boolean value )
+    boolean nested()
     {
-        this.nested = value;
+        return depth > 0;
+    }
+    void setNested()
+    {
+        depth++;
     }
     /**
      * Set the id for printing
@@ -146,7 +148,7 @@ public class Table extends Atom
         {
             Row r = new Row( sigla, base );
             // this will always be a nested row
-            r.setNested( this.nested );
+            r.setNested( this.nested() );
             FragList fl = new FragList();
             fl.setBase( a.versions.nextSetBit(base)==base );
             fl.add( a );
@@ -176,7 +178,7 @@ public class Table extends Atom
             if ( !contains(f) )
             {
                 Row r = new Row( sigla, base );
-                r.setNested( this.nested );
+                r.setNested( this.nested() );
                 r.add( other );
                 r.versions.or(f.versions);
                 addRow( r );
@@ -206,7 +208,7 @@ public class Table extends Atom
         StringBuilder sb = new StringBuilder();
         int baseRow = -1;
         sb.append("<table");
-        if ( nested )
+        if ( this.depth > 0 )
         {
             String localId = RandomId.getId( 32 );
             sb.append(" id=\"");
@@ -240,6 +242,55 @@ public class Table extends Atom
             sb.append( br.toString() );
         }
         sb.append("</table>");
+        return sb.toString();
+    }
+    /**
+     * Convert the table to a JSON representation
+     * @return a String being a JSON document
+     */
+    public String toJSONString()
+    {
+        boolean set = false;
+        StringBuilder sb = new StringBuilder();
+        int baseRow = -1;
+        sb.append("{");
+        // put table contents here
+        if ( this.depth > 0 )
+        {
+            String localId = RandomId.getId( 32 );
+            sb.append("\"id\":\"");
+            sb.append( localId );
+            sb.append( "\"," );
+            sb.append("\"class\":\"inline\", ");
+        }
+        sb.append( "\"rows\":[" );
+        // print out the rows
+        // ensure base version is at bottom
+        for ( int i=0;i<rows.size();i++ )
+        {
+            Row r = rows.get(i);
+            if ( r.versions.nextSetBit(base)!=base )
+            {
+                sb.append( r.toJSONString() );
+                sb.append(",");
+            }
+            else if ( !set )
+            {
+                baseRow = i;
+                set = true;
+            }
+            else
+                System.out.println("base already set!");
+        }
+        if ( baseRow == -1 )
+            System.out.println("base row not found!");
+        else
+        {
+            Row br = rows.get(baseRow);
+            br.setID( id );
+            sb.append( br.toJSONString() );
+        }
+        sb.append("]}");
         return sb.toString();
     }
     /**

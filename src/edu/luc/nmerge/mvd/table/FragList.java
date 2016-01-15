@@ -157,8 +157,12 @@ public class FragList
     /**
      * Convert the fraglist to formatted HTML 
      */
-    @Override
-    public String toString()
+    public String toJSONString()
+    {
+        TableCell tc = toTableCell();
+        return tc.toJSONString();
+    }
+    private TableCell toTableCell()
     {
         TableCell tc = new TableCell("td", null);
         String className = null;
@@ -178,6 +182,15 @@ public class FragList
                 className = null;
         }
         tc.setID( id );
+        return tc;
+    }
+    /**
+     * Convert the fraglist to formatted HTML 
+     */
+    @Override
+    public String toString()
+    {
+        TableCell tc = toTableCell();
         return tc.toString();
     }
     /**
@@ -364,8 +377,7 @@ public class FragList
     {
         if ( table == null )
         {
-            table = new Table( constraint, versions, base );
-            table.setNested( true );
+            table = new Table( constraint, versions, base, table.depth+1 );
         }
         return table;         
     }
@@ -593,8 +605,8 @@ public class FragList
         bs2.and( constraint );
         Utils.ensureExclusivity( bs1, bs2 );
         short base = (short)bs1.nextSetBit(0);
-        Table table = new Table( constraint, sigla, base );
-        table.setNested( true );
+        Table table = new Table( constraint, sigla, base, 0 );
+        table.setNested();
         // construct rows
         Row r = new Row( bs1, sigla, base );
         r.setNested( true );
