@@ -45,7 +45,7 @@ public class TextSegment
             json.append( className );
             json.append("\", ");
         }
-        json.append("\"text\": ");
+        json.append("\"text\": \"");
         json.append( sb.toString());
         json.append( "\"");
         json.append(" }");

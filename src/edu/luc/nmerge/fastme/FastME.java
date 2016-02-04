@@ -28,8 +28,6 @@ package edu.luc.nmerge.fastme;
  * See http://www.ncbi.nlm.nih.gov/CBBresearch/Desper/FastME.html
  * @author Desmond Schmidt 24/12/10
  */
-import edu.luc.nmerge.fastme.node;
-import edu.luc.nmerge.fastme.set;
 
 import java.util.StringTokenizer;
 

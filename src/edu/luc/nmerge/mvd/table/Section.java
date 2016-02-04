@@ -11,9 +11,11 @@ public class Section
 {
     HashMap<Short,FragList> lists;
     boolean merged;
+    int offset;
     Section()
     {
         lists = new HashMap<Short,FragList>();
+        offset = -1;
     }
     BitSet getVersions()
     {
@@ -27,15 +29,26 @@ public class Section
         return bs;
     }
     /**
+     * Get our starting point in base
+     * @return the first base offset
+     */
+    int getOffset()
+    {
+        return offset;
+    }
+    /**
      * Add a fragment belonging to just one version
      * @param kind the fragment kind
      * @param base the version of the fragment
+     * @param offset the offset in base where this frag starts
      * @param bs the set of versions sharing this frag
      * @param frag the actual fragment
      */
-    void addFrag( FragKind kind, short base, BitSet bs, String frag )
+    void addFrag( FragKind kind, short base, int offset, BitSet bs, String frag )
     {
         FragList fl;
+        if ( this.offset == -1 )
+            this.offset = offset;
         if ( kind==FragKind.merged )
             this.merged = true;
         if ( !lists.containsKey(base) )
@@ -52,8 +65,10 @@ public class Section
      * @param bs the set of versions it belongs to
      * @param frag the text of the fragment
      */
-    void addFragSet( FragKind kind, BitSet bs, String frag )
+    void addFragSet( FragKind kind, int offset, BitSet bs, String frag )
     {
+        if ( this.offset == -1 )
+            this.offset = offset;
         if ( kind == FragKind.merged )
             this.merged = true;
         for (int i = bs.nextSetBit(1); i>= 0; 

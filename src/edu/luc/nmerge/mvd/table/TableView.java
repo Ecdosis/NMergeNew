@@ -6,7 +6,7 @@ package edu.luc.nmerge.mvd.table;
 import java.util.*;
 import edu.luc.nmerge.mvd.Version;
 /**
- * Represent a table of variants for a range in the base text. Export in HTML.
+ * Represent a table of variants for a range in the base text. 
  * <p>The method is to assign pairs from the MVD to sections where either
  * all versions share the same text or not. So we alternate merged,not-merged,
  * merged etc. In each not-merged section we maintain separate lists for 
@@ -51,13 +51,21 @@ public class TableView
         this.tableId = (String)options.get(Options.TABLE_ID);
         this.all = all;
     }
+    public int[] getSectionStats()
+    {
+        int[] offsets = new int[sections.size()];
+        for ( int i=0;i<offsets.length;i++ )
+            offsets[i] = sections.get(i).getOffset();
+        return offsets;
+    }
     /**
      * Add a fragment and decide whether or not to create a new section
      * @param kind the fragment kind
      * @param versions the versions of the fragment
+     * @param offset the starting point in base
      * @param frag the text of the fragment
      */
-    public void addFragment( FragKind kind, BitSet versions, String frag )
+    public void addFragment( FragKind kind, int offset, BitSet versions, String frag )
     {
         boolean wasMerged = currentMerged();
         if ( sections.isEmpty() || (kind == FragKind.merged&&!wasMerged) 
@@ -66,9 +74,9 @@ public class TableView
         Section current = sections.get(sections.size()-1 );
         boolean hideMerged = getBooleanOption(Options.HIDE_MERGED);
         if ( kind == FragKind.merged && hideMerged )
-            current.addFrag( kind, base, versions, frag );
+            current.addFrag( kind, base, offset, versions, frag );
         else
-            current.addFragSet( kind, versions, frag );
+            current.addFragSet( kind, offset, versions, frag );
     }
     /**
      * Is the current section merged or not?

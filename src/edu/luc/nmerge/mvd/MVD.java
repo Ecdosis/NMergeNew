@@ -419,7 +419,12 @@ public class MVD extends Serialiser implements Serializable
         {
             char tnChar = tn.next();
             if ( tnChar != str.charAt(i) )
-                break;
+            {
+                char lcTnChar = Character.toLowerCase(tnChar);
+                char sLcChar = Character.toLowerCase(str.charAt(i));
+                if ( lcTnChar != sLcChar )
+                    break;
+            }
         }
         return i==str.length();
     }
@@ -2564,53 +2569,115 @@ public class MVD extends Serialiser implements Serializable
         return bs;
     }
     /**
+     * Get a set of versions corresponding to a named set
+     * @param spec a comma-separated list of full version names
+     * @return a set of actual versions in bitset form
+     */
+    BitSet getSelectedVersions( String spec )
+    {
+        BitSet bs;
+        if ( spec != null && spec.length()>0 )
+            bs = convertVersions( spec );
+        else
+        {
+            bs = new BitSet();
+            for ( int i=1;i<=versions.size();i++ )
+                bs.set( i );
+        }
+        return bs; 
+    }
+    /**
+     * Measure a table without turning it into HTML or JSON
+     * @param base the base version
+     * @param selected the selected set of versions
+     * @return an array of section starts in base
+     */
+    public int[] measureTable( short base, String selected )
+    {
+        BitSet bs = getSelectedVersions(selected);
+        TableView tv = buildDefaultTableView( base, bs, 0, Integer.MAX_VALUE );
+        return tv.getSectionStats();
+    }
+    /**
+     * Build a table with default options
+     * @param base the base version
+     * @parma bs the set of version we are interested in
+     * @param start the start offset within base
+     * @param len the length of the base string to include in table
+     * @return a complete table view, not yet rendered
+     */
+    TableView buildDefaultTableView( short base, BitSet bs, int start, int len )
+    {
+        EnumMap<Options,Object> options 
+            = new EnumMap<Options,Object>(Options.class);
+        options.put(Options.COMPACT,false);
+        options.put(Options.HIDE_MERGED,true);
+        options.put(Options.WHOLE_WORDS,true);
+        options.put(Options.FIRST_MERGEID,0);
+        options.put(Options.TABLE_ID,"json_table");
+        TableView view = new TableView( this.versions, base, bs, 
+            options );
+        int offset = 0;
+        int end = start+len;
+        for ( int i=0;i<=pairs.size()-1;i++ )
+        {
+            Pair p = pairs.get( i );
+            if ( p.length()>0 )
+            {
+                boolean isBase = p.versions.nextSetBit(base) == base;
+                BitSet set = constrainVersions(p.versions,bs);
+                if ( !p.versions.intersects(bs) )
+                    continue;
+                else 
+                {
+                    char[] data = p.getChars();
+                    if ( isBase && offset+p.length()>start&& offset<end )
+                    {
+                        if ( offset < start )
+                        {
+                            int dataLen = data.length-(start-offset);
+                            char[] data2 = new char[dataLen];
+                            System.arraycopy( data, start-offset, data2, 0, dataLen);
+                            data = data2;
+                        }
+                        else if ( end < offset+data.length )
+                        {
+                            int dataLen = (offset+data.length)-end;
+                            char[] data2 = new char[dataLen];
+                            System.arraycopy(data,0,data2,0,dataLen);
+                            data = data2;
+                        }
+                    }
+                    String frag = new String(data);
+                    if ( set.equals(bs) )
+                        view.addFragment( FragKind.merged, offset, bs, frag );
+                    else if ( !isBase )
+                        view.addFragment( FragKind.inserted, offset, set, frag );
+                    else // aligned with base
+                        view.addFragment( FragKind.aligned, offset, set, frag );
+                    if ( isBase )
+                        offset += data.length;
+                }
+            }
+            if ( offset > end )
+                break;
+        }
+        return view; 
+    }
+    /**
      * Get a JSON representation of the entire MVD as a table
      * @param base the version to regard as the base
+     * @param start the offset into base to start from
+     * @param len the length from start to return
      * @param spec a specification of a comma-separated set of versions
      * @return a JSON document
      */
-    public String getTable( short base, String spec )
+    public String getTable( short base, int start, int len, String spec )
     {
         try
         {
-            BitSet bs = convertVersions( spec );
-            if ( spec != null && spec.length()>0 )
-                bs = convertVersions( spec );
-            else
-            {
-                bs = new BitSet();
-                for ( int i=1;i<=versions.size();i++ )
-                    bs.set( i );
-            }
-            // so bs contains all the vesions we are interested in
-            // use default options for everything
-            EnumMap<Options,Object> options 
-                = new EnumMap<Options,Object>(Options.class);
-            options.put(Options.COMPACT,false);
-            options.put(Options.HIDE_MERGED,true);
-            options.put(Options.WHOLE_WORDS,true);
-            options.put(Options.FIRST_MERGEID,0);
-            options.put(Options.TABLE_ID,"json_table");
-            TableView view = new TableView( this.versions, base, bs, 
-                options );
-            for ( int i=0;i<=pairs.size()-1;i++ )
-            {
-                Pair p = pairs.get( i );
-                if ( p.length()>0 )
-                {
-                    char[] data = p.getChars();
-                    String frag = new String(data);
-                    BitSet set = constrainVersions(p.versions,bs);
-                    if ( !p.versions.intersects(bs) )
-                        continue;
-                    else if ( set.equals(bs) )
-                        view.addFragment( FragKind.merged, bs, frag );
-                    else if ( p.versions.nextSetBit(base) != base )
-                        view.addFragment( FragKind.inserted, set, frag );
-                    else // aligned with base
-                        view.addFragment( FragKind.aligned, set, frag );
-                }
-            }
+            BitSet bs = getSelectedVersions(spec);
+            TableView view = buildDefaultTableView(base,bs,start,len);
             return view.toJSONString();
         }
         catch ( Exception e )
@@ -2653,7 +2720,7 @@ public class MVD extends Serialiser implements Serializable
             }
             found.and( bs );
             // so now we have a range of pair-positions
-            // and ALL its versions in bs
+            // and ALL its versions in found
             EnumMap<Options,Object> options 
                 = new EnumMap<Options,Object>(Options.class);
             options.put(Options.COMPACT,compact);
@@ -2663,12 +2730,14 @@ public class MVD extends Serialiser implements Serializable
             options.put(Options.TABLE_ID,tableId);
             TableView view = new TableView( this.versions, base, found, 
                 options );
+            int offset = 0;
             for ( int i=sPos.getIndex();i<=ePos.getIndex();i++ )
             {
                 Pair p = pairs.get( i );
                 if ( p.length()>0 )
                 {
                     int deleted = 0;
+                    boolean isBase = p.versions.nextSetBit(base) == base;
                     char[] data = p.getChars();
                     if ( i == sPos.getIndex() )
                     {
@@ -2694,11 +2763,13 @@ public class MVD extends Serialiser implements Serializable
                     if ( !p.versions.intersects(found) )
                         continue;
                     else if ( set.equals(found) )
-                        view.addFragment( FragKind.merged, found, frag );
-                    else if ( p.versions.nextSetBit(base) != base )
-                        view.addFragment( FragKind.inserted, set, frag );
+                        view.addFragment( FragKind.merged, offset, found, frag );
+                    else if ( !isBase )
+                        view.addFragment( FragKind.inserted, offset, set, frag );
                     else // aligned with base
-                        view.addFragment( FragKind.aligned, set, frag );
+                        view.addFragment( FragKind.aligned, offset, set, frag );
+                    if ( isBase )
+                        offset += data.length;
                 }
             }
             return view.toString();

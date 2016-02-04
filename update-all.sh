@@ -10,4 +10,5 @@ cp nmerge.jar ../Pages/lib/nmerge.jar
 cp nmerge.jar ../Search/lib/nmerge.jar
 cp nmerge.jar ../MVD/lib/nmerge.jar
 cp nmerge.jar ../Annotator/lib/nmerge.jar
+cp nmerge.jar ../Tree/lib/nmerge.jar
 
