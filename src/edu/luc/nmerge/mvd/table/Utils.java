@@ -4,6 +4,7 @@
  */
 package edu.luc.nmerge.mvd.table;
 import edu.luc.nmerge.mvd.Version;
+import edu.luc.nmerge.mvd.Group;
 import java.util.BitSet;
 import java.util.ArrayList;
 
@@ -13,20 +14,51 @@ import java.util.ArrayList;
  */
 public class Utils 
 {
+    static String[] layerNames = {"add0","base","del1","rdg1","rdg2"}; 
+    /**
+     * Check if the given shortName is a layer
+     * @param shortName the shortName of a version
+     * @return true if it is a recognised layer name
+     */
+    private static boolean isLayerName( String shortName )
+    {
+        int top = 0;
+        int bot = layerNames.length-1;
+        while ( top <= bot )
+        {
+            int mid = (top+bot)/2;
+            int res = shortName.compareTo(layerNames[mid]);
+            if ( res == 0 )
+                return true;
+            else if ( res < 0 )
+                bot = mid-1;
+            else
+                top = mid+1;
+        }
+        return false;
+    }
     /**
      * Using a sigla array convert a bitset into a string of 
      * space-delimited short names
+     * @param groups the MVD's list of groups
      * @param bs the set of versions
      * @return a String
      */
-    static String bitSetToString( ArrayList<Version> sigla, BitSet bs )
+    static String bitSetToString( ArrayList<Version> sigla, 
+        ArrayList<Group> groups, BitSet bs )
     {
         try
         {
             StringBuilder sb = new StringBuilder();
             for ( int i = bs.nextSetBit(0); i>= 0; i = bs.nextSetBit(i+1))
             {
-                String siglum = sigla.get(i-1).shortName;
+                Version v = sigla.get(i-1);
+                String siglum = v.shortName;
+                if ( isLayerName(siglum) )
+                {
+                    Group g = groups.get(v.group-1);
+                    siglum = g.name+"/"+v.shortName;
+                }
                 if ( sb.length()>0 )
                     sb.append( " " );
                 sb.append( siglum );

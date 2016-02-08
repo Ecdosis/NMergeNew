@@ -2615,7 +2615,7 @@ public class MVD extends Serialiser implements Serializable
         options.put(Options.WHOLE_WORDS,true);
         options.put(Options.FIRST_MERGEID,0);
         options.put(Options.TABLE_ID,"json_table");
-        TableView view = new TableView( this.versions, base, bs, 
+        TableView view = new TableView( this.versions, this.groups, base, bs, 
             options );
         int offset = 0;
         int end = start+len;
@@ -2728,8 +2728,8 @@ public class MVD extends Serialiser implements Serializable
             options.put(Options.WHOLE_WORDS,wholeWords);
             options.put(Options.FIRST_MERGEID,firstID);
             options.put(Options.TABLE_ID,tableId);
-            TableView view = new TableView( this.versions, base, found, 
-                options );
+            TableView view = new TableView( this.versions, this.groups, 
+                base, found, options );
             int offset = 0;
             for ( int i=sPos.getIndex();i<=ePos.getIndex();i++ )
             {

@@ -4,6 +4,7 @@
  */
 package edu.luc.nmerge.mvd.table;
 import edu.luc.nmerge.mvd.Version;
+import edu.luc.nmerge.mvd.Group;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -141,7 +142,7 @@ public class FragList
         copy.nested = this.nested;
         return copy;
     }
-    void printList( ArrayList<Version> sigla )
+    void printList( ArrayList<Version> sigla, ArrayList<Group> groups )
     {
         for ( int j=0;j<fragments.size();j++ )
         {
@@ -149,7 +150,7 @@ public class FragList
             if ( a instanceof Fragment )
             {
                 Fragment f = (Fragment)a;
-                System.out.println(Utils.bitSetToString(sigla,f.versions)
+                System.out.println(Utils.bitSetToString(sigla,groups,f.versions)
                     +" \""+f.contents+"\"" );
             }
         }
@@ -594,10 +595,11 @@ public class FragList
      * Merge two fraglists by just putting them into separate rows of a table
      * @param fl the other fraglist
      * @param sigla the descriptions of the versions
+     * @param groups the groups those versions belong to
      * @param constraint nested tables must belong to these versions only
      */
     private void mergeAsTable( FragList fl, ArrayList<Version> sigla, 
-        BitSet constraint ) throws Exception
+        ArrayList<Group> groups, BitSet constraint ) throws Exception
     {
         BitSet bs1 = getShared();
         bs1.and( constraint );
@@ -608,7 +610,7 @@ public class FragList
         Table table = new Table( constraint, sigla, base, 0 );
         table.setNested();
         // construct rows
-        Row r = new Row( bs1, sigla, base );
+        Row r = new Row( bs1, sigla, groups, base );
         r.setNested( true );
         FragList copy1 = (FragList)this.clone();
         FragList copy2 = (FragList)fl.clone();
@@ -617,7 +619,7 @@ public class FragList
         else
             copy2.setBase( true );
         r.add( copy1 );
-        Row s = new Row( bs2, sigla, base );
+        Row s = new Row( bs2, sigla, groups, base );
         s.setNested( true );
         s.add( copy2 );
         table.addRow( r );
@@ -635,10 +637,11 @@ public class FragList
      * Merge one fraglist with another
      * @param fl the other fraglist
      * @param sigla the descriptions of the versions
+     * @param groups the groups those versions belong to
      * @param constraint nested tables must belong to these versions only
      */
-    void merge( FragList fl, ArrayList<Version> sigla, BitSet constraint ) 
-        throws Exception
+    void merge( FragList fl, ArrayList<Version> sigla, ArrayList<Group> groups, 
+        BitSet constraint ) throws Exception
     {
         if ( !fl.isEmpty() && isEmpty() )
             this.fragments = fl.fragments;
@@ -649,7 +652,7 @@ public class FragList
             if ( sim >= Atom.THRESHOLD_SIM )
                 mergeByAtom( fl, sigla, constraint);
             else
-                mergeAsTable( fl, sigla, constraint );
+                mergeAsTable( fl, sigla, groups, constraint );
         }
     }
     /**
@@ -807,6 +810,7 @@ public class FragList
             FragList fl2 = new FragList();
             BitSet bs = new BitSet();
             ArrayList<Version> vt = new ArrayList<Version>();
+            ArrayList<Group> groups = new ArrayList<Group>();
             fl1.add( FragKind.aligned, "banana", bs );
             fl2.add( FragKind.inserted, "banana", bs );
             fl1.add( FragKind.aligned, "apple", bs );
@@ -820,7 +824,7 @@ public class FragList
             fl1.add( FragKind.aligned, "mandarin", bs );
             fl2.add( FragKind.inserted, "cumquat", bs );
             float percent = fl1.similarity(fl2);
-            fl1.merge( fl2, vt, bs );
+            fl1.merge( fl2, vt, groups, bs );
         }
         catch ( Exception e )
         {

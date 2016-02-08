@@ -4,6 +4,7 @@
  */
 package edu.luc.nmerge.mvd.table;
 import edu.luc.nmerge.mvd.Version;
+import edu.luc.nmerge.mvd.Group;
 import java.util.ArrayList;
 import java.util.BitSet;
 /**
@@ -14,6 +15,8 @@ class Row
     ArrayList<FragList> cells;
     /** description of versions */
     ArrayList<Version> sigla;
+    /** description of versions */
+    ArrayList<Group> groups;
     /** Set of versions represented by all fraglists in this row (ANDed) */
     BitSet versions;
     /** the base version which we might not contain */
@@ -24,18 +27,20 @@ class Row
      * id of first table cell
      */
     int id;
-    Row( BitSet versions, ArrayList<Version> sigla, short base )
+    Row( BitSet versions, ArrayList<Version> sigla, ArrayList<Group> groups, short base )
     {
         this.versions = (BitSet)versions.clone();
+        this.groups = groups;
         this.sigla = sigla;
         this.base = base;
         cells = new ArrayList<FragList>();
     }
-    Row( ArrayList<Version> sigla, short base )
+    Row( ArrayList<Version> sigla, ArrayList<Group> groups, short base )
     {
         this.versions = new BitSet();
         this.base = base;
         this.sigla = sigla;
+        this.groups = groups;
         cells = new ArrayList<FragList>();
     }
     /**
@@ -91,7 +96,7 @@ class Row
         for ( int i=0;i<cells.size();i++ )
         {
             FragList fl = cells.get(i);
-            fl.printList( sigla );
+            fl.printList( sigla, groups );
         }
     }
     /**
@@ -135,7 +140,7 @@ class Row
             {
                 FragList fl1 = cells.get(i);
                 FragList fl2 = r.cells.get(i);
-                fl1.merge(fl2,sigla,constraint);
+                fl1.merge(fl2,sigla,groups,constraint);
             }
             this.versions.or( r.versions );
             return true;
@@ -191,22 +196,25 @@ class Row
     public String toJSONString()
     {
         StringBuilder sb = new StringBuilder();
-        sb.append("{");
+        sb.append("{"); 
         //boolean rowWithNesting = hasNestedTable();
         if ( isHidden() )
             sb.append("\"class\":\"hidden\"," );
         //else if ( rowWithNesting )
         //    sb.append(" class=\"nested\"" );
         sb.append("\"cells\":[");
+        // start first cell
         if ( nested )
             sb.append("{\"class\":\"siglumhidden\",");
         else
             sb.append("{\"class\":\"siglumleft\",");
         // write siglum
-        String versionsString = Utils.bitSetToString(sigla,versions);
-        sb.append("\"text\":\"");
+        sb.append("\"segments\":[");
+        String versionsString = Utils.bitSetToString(sigla,groups,versions);
+        sb.append("{\"text\":\"");
         sb.append( versionsString );
-        sb.append( "\"}," );
+        sb.append( "\"}]" );
+        sb.append("},");    // end first cell
         for ( int i=0;i<cells.size();i++ )
         {
             FragList fl = cells.get(i);
@@ -238,7 +246,7 @@ class Row
         else
             sb.append("><td class=\"siglumleft\">");
         // write siglum
-        String versionsString = Utils.bitSetToString(sigla,versions);
+        String versionsString = Utils.bitSetToString(sigla,groups,versions);
         sb.append( versionsString );
         sb.append("</td>");
         for ( int i=0;i<cells.size();i++ )

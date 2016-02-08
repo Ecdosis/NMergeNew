@@ -4,6 +4,7 @@
  */
 package edu.luc.nmerge.mvd.table;
 import edu.luc.nmerge.mvd.Version;
+import edu.luc.nmerge.mvd.Group;
 import java.util.ArrayList;
 import java.util.BitSet;
 /**
@@ -14,6 +15,7 @@ public class Table extends Atom
 {
     ArrayList<Row> rows;
     ArrayList<Version> sigla;
+    ArrayList<Group> groups;
     short base;
     int id;
     String tableId;
@@ -146,7 +148,7 @@ public class Table extends Atom
     {
         if ( !addToExisting(a) )
         {
-            Row r = new Row( sigla, base );
+            Row r = new Row( sigla, groups, base );
             // this will always be a nested row
             r.setNested( this.nested() );
             FragList fl = new FragList();
@@ -177,7 +179,7 @@ public class Table extends Atom
             Fragment f = (Fragment)other;
             if ( !contains(f) )
             {
-                Row r = new Row( sigla, base );
+                Row r = new Row( sigla, groups, base );
                 r.setNested( this.nested() );
                 r.add( other );
                 r.versions.or(f.versions);
@@ -533,7 +535,7 @@ public class Table extends Atom
             if ( bs.intersects(r.versions) )
             {
                 System.out.println("Overlapping version in row "
-                    +Utils.bitSetToString(sigla,r.versions));
+                    +Utils.bitSetToString(sigla,groups,r.versions));
                 return false;
             }
             bs.or( r.versions );

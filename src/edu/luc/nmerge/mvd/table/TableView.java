@@ -5,6 +5,7 @@
 package edu.luc.nmerge.mvd.table;
 import java.util.*;
 import edu.luc.nmerge.mvd.Version;
+import edu.luc.nmerge.mvd.Group;
 /**
  * Represent a table of variants for a range in the base text. 
  * <p>The method is to assign pairs from the MVD to sections where either
@@ -27,6 +28,7 @@ public class TableView
 {
     ArrayList<Section> sections;
     ArrayList<Version> sigla;
+    ArrayList<Group> groups;
     EnumMap<Options,Object> options;
     int firstID;
     String tableId;
@@ -39,11 +41,12 @@ public class TableView
      * @param base the designated base version
      * @param options a set of key-value pair options
      */
-    public TableView( ArrayList<Version> sigla, short base, BitSet all,
-        EnumMap<Options,Object> options )
+    public TableView( ArrayList<Version> sigla, ArrayList<Group> groups, 
+        short base, BitSet all, EnumMap<Options,Object> options )
     {
         sections = new ArrayList<Section>();
         this.sigla = sigla;
+        this.groups = groups;
         this.base = base;
         this.options = options;
         Integer id = (Integer)options.get(Options.FIRST_MERGEID);
@@ -250,7 +253,7 @@ public class TableView
                 Row r = table.getRow( j );
                 if ( r == null )
                 {
-                    r = new Row( rowSets[j], sigla, base );
+                    r = new Row( rowSets[j], sigla, groups, base );
                     table.addRow( r );
                 }
                 FragList fl = s.lists.get((short)v);

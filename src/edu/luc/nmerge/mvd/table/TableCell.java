@@ -50,13 +50,18 @@ public class TableCell
             json.append( "\"id\":\"t" );
             String idStr = Integer.toString(id);
             json.append( idStr );
-            json.append( "\",\"segments\":[" );
+            json.append("\",");
         }
+        json.append( "\"segments\":[" );
         for ( int i=0;i<segments.size();i++ )
         {
-            json.append( segments.get(i).toJSONString() );
-            if ( i<segments.size()-1 )
-                json.append(", ");
+            TextSegment s = segments.get(i);
+            if ( s.length()> 0 )
+            {
+                json.append( s.toJSONString() );
+                if ( i<segments.size()-1 )
+                    json.append(", ");
+            }
         }
         json.append( "]}" );
         return json.toString();

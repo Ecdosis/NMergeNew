@@ -27,6 +27,30 @@ public class TextSegment
     {
         return className;
     }
+    /**
+     * prepare some text for use in a JSON document string
+     * @param text the unclean text
+     * @return the cleaned text
+     */
+    private String cleanText( String text )
+    {
+        StringBuilder sb = new StringBuilder();
+        for ( int i=0;i<text.length();i++ )
+        {
+            char token = text.charAt(i);
+            if ( token == '\n' )
+                sb.append(" ");
+            else if ( token == '"' )
+                sb.append("\\\"");
+            else
+                sb.append(token);
+        }
+        return sb.toString();
+    }
+    public int length()
+    {
+        return sb.length();
+    }
     public String toJSONString()
     {
         StringBuilder json = new StringBuilder();
@@ -38,6 +62,7 @@ public class TextSegment
             if ( sb.charAt(len-1)==' ' )
                 sb.replace(len-1,len,"&nbsp;");
         }
+        // can't concatenate segments in JSON because no mixed content
         json.append("{ ");
         if ( this.className != null )
         {
@@ -46,7 +71,7 @@ public class TextSegment
             json.append("\", ");
         }
         json.append("\"text\": \"");
-        json.append( sb.toString());
+        json.append( cleanText(sb.toString()) );
         json.append( "\"");
         json.append(" }");
         return json.toString();
