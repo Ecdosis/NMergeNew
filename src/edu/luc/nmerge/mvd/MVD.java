@@ -2598,10 +2598,54 @@ public class MVD extends Serialiser implements Serializable
         TableView tv = buildDefaultTableView( base, bs, 0, Integer.MAX_VALUE );
         return tv.getSectionStats();
     }
+    public static String versionsToString( BitSet bs )
+    {
+        StringBuilder sb = new StringBuilder();
+        int start = -1;
+        int end = -1;
+        for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i+1))
+        {
+            if ( i==end+1 )
+                end = i;
+            else if ( start != -1 && end != -1 )
+            {
+                if ( sb.length()> 0 )
+                    sb.append(",");
+                if ( end > start )
+                {
+                    sb.append(start );
+                    sb.append("-");
+                    sb.append(end);
+                }
+                else
+                    sb.append(end);
+                start = end = i;
+            }
+            else
+            {
+                start = end = i;
+            }
+        }
+        // coda
+        if ( start != -1 && end != -1 )
+        {
+            if ( sb.length()> 0 )
+                sb.append(",");
+            if ( end > start )
+            {
+                sb.append(start );
+                sb.append("-");
+                sb.append(end);
+            }
+            else
+                sb.append(end);
+        }
+        return sb.toString();
+    }
     /**
      * Build a table with default options
      * @param base the base version
-     * @parma bs the set of version we are interested in
+     * @parma bs the set of versions we are interested in
      * @param start the start offset within base
      * @param len the length of the base string to include in table
      * @return a complete table view, not yet rendered
@@ -2615,48 +2659,66 @@ public class MVD extends Serialiser implements Serializable
         options.put(Options.WHOLE_WORDS,true);
         options.put(Options.FIRST_MERGEID,0);
         options.put(Options.TABLE_ID,"json_table");
+        int[] lengths = getVersionLengths();
+        int[] totals = new int[lengths.length];
         TableView view = new TableView( this.versions, this.groups, base, bs, 
             options );
         int offset = 0;
         int end = start+len;
+        BitSet current = new BitSet();
+        current.set(base);  // if merged must be in base
         for ( int i=0;i<=pairs.size()-1;i++ )
         {
             Pair p = pairs.get( i );
+            BitSet pv = p.versions;
             if ( p.length()>0 )
             {
-                boolean isBase = p.versions.nextSetBit(base) == base;
-                BitSet set = constrainVersions(p.versions,bs);
-                if ( !p.versions.intersects(bs) )
+                if ( !pv.intersects(bs) )
                     continue;
                 else 
                 {
+                    boolean isBase = pv.nextSetBit(base) == base;
+                    BitSet set = constrainVersions(pv, bs);
+                    current.or(set);
                     char[] data = p.getChars();
-                    if ( isBase && offset+p.length()>start&& offset<end )
+                    if ( offset+p.length()>start&& offset<end )
                     {
-                        if ( offset < start )
+                        if ( isBase )
                         {
-                            int dataLen = data.length-(start-offset);
-                            char[] data2 = new char[dataLen];
-                            System.arraycopy( data, start-offset, data2, 0, dataLen);
-                            data = data2;
+                            if ( offset < start )
+                            {
+                                int dataLen = data.length-(start-offset);
+                                char[] data2 = new char[dataLen];
+                                System.arraycopy( data, start-offset, data2, 0, dataLen);
+                                data = data2;
+                            }
+                            else if ( end < offset+data.length )
+                            {
+                                int dataLen = (offset+data.length)-end;
+                                char[] data2 = new char[dataLen];
+                                System.arraycopy(data,0,data2,0,dataLen);
+                                data = data2;
+                            }
                         }
-                        else if ( end < offset+data.length )
-                        {
-                            int dataLen = (offset+data.length)-end;
-                            char[] data2 = new char[dataLen];
-                            System.arraycopy(data,0,data2,0,dataLen);
-                            data = data2;
-                        }
+                        String frag = new String(data);
+                        if ( set.equals(current) )
+                            view.addFragment( FragKind.merged, offset, bs, frag );
+                        else if ( !isBase )
+                            view.addFragment( FragKind.inserted, offset, set, frag );
+                        else // aligned with base
+                            view.addFragment( FragKind.aligned, offset, set, frag );
                     }
-                    String frag = new String(data);
-                    if ( set.equals(bs) )
-                        view.addFragment( FragKind.merged, offset, bs, frag );
-                    else if ( !isBase )
-                        view.addFragment( FragKind.inserted, offset, set, frag );
-                    else // aligned with base
-                        view.addFragment( FragKind.aligned, offset, set, frag );
                     if ( isBase )
                         offset += data.length;
+                }
+                // update totals and current versions
+                for (int j=pv.nextSetBit(0);j>=0;j=pv.nextSetBit(j+1)) 
+                {
+                    totals[j-1] += p.length();
+                    if ( totals[j-1] >= lengths[j-1] && j != base )
+                    {
+                        current.clear(j);
+                    }
                 }
             }
             if ( offset > end )
