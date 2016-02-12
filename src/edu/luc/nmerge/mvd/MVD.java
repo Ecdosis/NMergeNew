@@ -2643,6 +2643,28 @@ public class MVD extends Serialiser implements Serializable
         return sb.toString();
     }
     /**
+     * FInd out if this set is almost aligned with the reference
+     * @param set the set to test
+     * @param curr the set to align against, typically all versions
+     * @return true if set is nearly equal to curr, depending on its size
+     */
+    boolean isAlmost( BitSet set, BitSet curr )
+    {
+        BitSet bs = (BitSet) set.clone();
+        bs.xor(curr);
+        int card = curr.cardinality();
+        // for 8 versions tolerance is one errant version
+        // for 16: 2, for 32: 3...
+        int res = card>>3;
+        int tolerance = 0;
+        while ( res != 0 )
+        {
+            tolerance++;
+            res >>= 1;
+        }
+        return bs.cardinality()<= tolerance;
+    }
+    /**
      * Build a table with default options
      * @param base the base version
      * @parma bs the set of versions we are interested in
@@ -2665,8 +2687,6 @@ public class MVD extends Serialiser implements Serializable
             options );
         int offset = 0;
         int end = start+len;
-        BitSet current = new BitSet();
-        current.set(base);  // if merged must be in base
         for ( int i=0;i<=pairs.size()-1;i++ )
         {
             Pair p = pairs.get( i );
@@ -2678,12 +2698,12 @@ public class MVD extends Serialiser implements Serializable
                 else 
                 {
                     boolean isBase = pv.nextSetBit(base) == base;
-                    BitSet set = constrainVersions(pv, bs);
-                    current.or(set);
-                    char[] data = p.getChars();
-                    if ( offset+p.length()>start&& offset<end )
+                    if ( !isBase || offset < end )
                     {
-                        if ( isBase )
+                        BitSet set = constrainVersions(pv, bs);
+                        char[] data = p.getChars();
+                        // trim data
+                        if ( isBase && offset+p.length()>start&& offset<end )
                         {
                             if ( offset < start )
                             {
@@ -2701,29 +2721,47 @@ public class MVD extends Serialiser implements Serializable
                             }
                         }
                         String frag = new String(data);
-                        if ( set.equals(current) )
-                            view.addFragment( FragKind.merged, offset, bs, frag );
+                        BitSet curr = view.getCurrentVersions();
+                        if ( set.equals(curr) )
+                        {
+                            view.addFragment( FragKind.merged, offset, set, frag );
+                        }
+                        else if ( isAlmost(set,curr) )
+                            view.addFragment( FragKind.almost, offset, set, frag );
                         else if ( !isBase )
+                        {
                             view.addFragment( FragKind.inserted, offset, set, frag );
+                        }
                         else // aligned with base
+                        {
                             view.addFragment( FragKind.aligned, offset, set, frag );
+                        }
+                        if ( isBase )
+                            offset += data.length;
                     }
-                    if ( isBase )
-                        offset += data.length;
                 }
                 // update totals and current versions
-                for (int j=pv.nextSetBit(0);j>=0;j=pv.nextSetBit(j+1)) 
+                for (int j=pv.nextSetBit(1);j>=0;j=pv.nextSetBit(j+1)) 
                 {
                     totals[j-1] += p.length();
-                    if ( totals[j-1] >= lengths[j-1] && j != base )
+                    if ( totals[j-1] >= lengths[j-1] )
                     {
-                        current.clear(j);
+                        view.clearCurrent((short)j);
+                        System.out.println("clearing version "+j);
                     }
                 }
             }
             if ( offset > end )
                 break;
         }
+//        System.out.println("totals:");
+//        for ( int i=0;i<totals.length;i++ )
+//            System.out.print(totals[i]+" ");
+//        System.out.println("");
+//        System.out.println("length:");
+//        for ( int i=0;i<lengths.length;i++ )
+//            System.out.print(lengths[i]+" ");
+//        System.out.println("");
         return view; 
     }
     /**

@@ -10,23 +10,18 @@ import java.util.*;
 public class Section
 {
     HashMap<Short,FragList> lists;
-    boolean merged;
+    SectionState state;
+    BitSet versions;
     int offset;
     Section()
     {
         lists = new HashMap<Short,FragList>();
         offset = -1;
+        this.versions = new BitSet();
     }
     BitSet getVersions()
     {
-        BitSet bs = new BitSet();
-        Set<Short> keys = lists.keySet();
-        Iterator<Short> iter = keys.iterator();
-        while ( iter.hasNext() )
-        {
-            bs.set( iter.next().shortValue() );
-        }
-        return bs;
+        return versions;
     }
     /**
      * Get our starting point in base
@@ -47,10 +42,10 @@ public class Section
     void addFrag( FragKind kind, short base, int offset, BitSet bs, String frag )
     {
         FragList fl;
+        this.versions.or(bs);
         if ( this.offset == -1 )
             this.offset = offset;
-        if ( kind==FragKind.merged )
-            this.merged = true;
+        this.state = SectionState.state(kind);
         if ( !lists.containsKey(base) )
         {
             fl = new FragList();
@@ -67,12 +62,12 @@ public class Section
      */
     void addFragSet( FragKind kind, int offset, BitSet bs, String frag )
     {
+        this.versions.or(bs);
         if ( this.offset == -1 )
             this.offset = offset;
-        if ( kind == FragKind.merged )
-            this.merged = true;
+        this.state = SectionState.state(kind);
         for (int i = bs.nextSetBit(1); i>= 0; 
-                i = bs.nextSetBit(i+1))
+            i = bs.nextSetBit(i+1))
         {
             if ( lists.containsKey((short)i) )
             {
@@ -83,6 +78,19 @@ public class Section
             {
                 FragList fl = new FragList();
                 fl.add( kind, frag, bs );
+                lists.put( (short)i, fl );
+            }
+        }
+        // if nearly aligned fill in the gaps with empty fraglists
+        if ( kind == FragKind.almost )
+        {
+            BitSet disjoint = (BitSet)versions.clone();
+            disjoint.and(bs);
+            for (int i = disjoint.nextSetBit(1); i>= 0; 
+                i = disjoint.nextSetBit(i+1))
+            {
+                FragList fl = new FragList();
+                fl.add( kind, "", disjoint );
                 lists.put( (short)i, fl );
             }
         }

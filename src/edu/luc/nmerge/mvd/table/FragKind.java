@@ -14,6 +14,7 @@ public enum FragKind
     inserted,
     deleted,
     exchanged,
-    merged;
+    merged,
+    almost;
 };
 

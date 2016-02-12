@@ -30,6 +30,8 @@ public class TableView
     ArrayList<Version> sigla;
     ArrayList<Group> groups;
     EnumMap<Options,Object> options;
+    boolean hideMerged;
+    Section current;
     int firstID;
     String tableId;
     /** all the versions we are considering */
@@ -53,6 +55,7 @@ public class TableView
         this.firstID = id.intValue();
         this.tableId = (String)options.get(Options.TABLE_ID);
         this.all = all;
+        this.hideMerged = getBooleanOption(Options.HIDE_MERGED);
     }
     public int[] getSectionStats()
     {
@@ -70,30 +73,34 @@ public class TableView
      */
     public void addFragment( FragKind kind, int offset, BitSet versions, String frag )
     {
-        boolean wasMerged = currentMerged();
-        if ( sections.isEmpty() || (kind == FragKind.merged&&!wasMerged) 
-            || (kind != FragKind.merged&&wasMerged) )
+        if ( sections.isEmpty() || SectionState.state(kind) != current.state )
+        {
             sections.add( new Section() );
-        Section current = sections.get(sections.size()-1 );
-        boolean hideMerged = getBooleanOption(Options.HIDE_MERGED);
+            current = sections.get(sections.size()-1 );
+        }
         if ( kind == FragKind.merged && hideMerged )
             current.addFrag( kind, base, offset, versions, frag );
+        else if ( kind == FragKind.almost )
+            current.addFragSet( kind, offset, versions, frag );
         else
             current.addFragSet( kind, offset, versions, frag );
     }
     /**
-     * Is the current section merged or not?
-     * @return true if it is else false
+     * Get the versions of the current segment
+     * @return a bitset
      */
-    boolean currentMerged()
+    public BitSet getCurrentVersions()
     {
-        if ( !sections.isEmpty() )
-        {
-            Section current = sections.get( sections.size()-1 );
-            return current.merged;
-        }
-        else
-            return false;
+        return (current==null)?this.all:current.getVersions();
+    }
+    /**
+     * Clear the current version which has now ended
+     * @param v a version id starting at 1
+     */
+    public void clearCurrent( short v )
+    {
+        if ( current != null )
+            current.versions.clear(v);
     }
     /**
      * Debug routine
@@ -158,7 +165,7 @@ public class TableView
         for ( int i=0;i<sections.size();i++ )
         {
             Section s = sections.get(i);
-            if ( s.merged && getBooleanOption(Options.HIDE_MERGED) )
+            if ( s.state==SectionState.merged && getBooleanOption(Options.HIDE_MERGED) )
             {
                 for (int j=all.nextSetBit(0);j>=0;j=all.nextSetBit(j+1)) 
                     adjustSet( sets, all, (short)j );
@@ -257,7 +264,7 @@ public class TableView
                     table.addRow( r );
                 }
                 FragList fl = s.lists.get((short)v);
-                if ( s.merged )
+                if ( s.state == SectionState.merged )
                 {
                     if ( fl == null )
                         fl = new FragList( true );
@@ -266,7 +273,7 @@ public class TableView
                 }
                 if ( rowSets[j].nextSetBit(base)==base )
                 {
-                    if ( fl==null)
+                    if ( fl==null )
                         fl = new FragList();
                     fl.setBase( true );
                 }

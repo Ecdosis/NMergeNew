@@ -40,6 +40,8 @@ public class TextSegment
             char token = text.charAt(i);
             if ( token == '\n' )
                 sb.append(" ");
+            else if ( token == '\t' )
+                sb.append(" ");
             else if ( token == '"' )
                 sb.append("\\\"");
             else
