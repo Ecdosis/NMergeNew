@@ -73,6 +73,12 @@ public class TableView
      */
     public void addFragment( FragKind kind, int offset, BitSet versions, String frag )
     {
+        BitSet missing=null;
+        if ( kind == FragKind.almost )
+        {
+            missing = (BitSet)current.getVersions().clone();
+            missing.xor(versions);
+        }
         if ( sections.isEmpty() || SectionState.state(kind) != current.state )
         {
             sections.add( new Section() );
@@ -81,7 +87,9 @@ public class TableView
         if ( kind == FragKind.merged && hideMerged )
             current.addFrag( kind, base, offset, versions, frag );
         else if ( kind == FragKind.almost )
-            current.addFragSet( kind, offset, versions, frag );
+        {
+            current.addAlmostSet( offset, versions, missing, frag );
+        }
         else
             current.addFragSet( kind, offset, versions, frag );
     }

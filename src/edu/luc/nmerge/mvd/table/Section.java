@@ -81,16 +81,42 @@ public class Section
                 lists.put( (short)i, fl );
             }
         }
-        // if nearly aligned fill in the gaps with empty fraglists
-        if ( kind == FragKind.almost )
+    }
+    /**
+     * Add a frag that belongs to an almost merged set of versions
+     * @param bs the set of versions it belongs to
+     * @param missing the versions it is missing in
+     * @param frag the text of the fragment
+     */
+    void addAlmostSet( int offset, BitSet bs, BitSet missing, String frag )
+    {
+        this.versions.or(bs);
+        if ( this.offset == -1 )
+            this.offset = offset;
+        this.state = SectionState.almost;
+        for (int i = bs.nextSetBit(1); i>= 0; 
+            i = bs.nextSetBit(i+1))
         {
-            BitSet disjoint = (BitSet)versions.clone();
-            disjoint.and(bs);
-            for (int i = disjoint.nextSetBit(1); i>= 0; 
-                i = disjoint.nextSetBit(i+1))
+            if ( lists.containsKey((short)i) )
+            {
+                FragList fl = lists.get( (short)i );
+                fl.add( FragKind.almost, frag, bs );
+            }
+            else
             {
                 FragList fl = new FragList();
-                fl.add( kind, "", disjoint );
+                fl.add( FragKind.almost, frag, bs );
+                lists.put( (short)i, fl );
+            }
+        }
+        // fill in the gaps with empty fraglists
+        for (int i = missing.nextSetBit(1); i>= 0; 
+                i = missing.nextSetBit(i+1))
+        {
+            if ( !lists.containsKey((short)i) )
+            {
+                FragList fl = new FragList();
+                fl.add( FragKind.almost, "", missing );
                 lists.put( (short)i, fl );
             }
         }

@@ -2677,7 +2677,7 @@ public class MVD extends Serialiser implements Serializable
         EnumMap<Options,Object> options 
             = new EnumMap<Options,Object>(Options.class);
         options.put(Options.COMPACT,false);
-        options.put(Options.HIDE_MERGED,true);
+        options.put(Options.HIDE_MERGED,false);
         options.put(Options.WHOLE_WORDS,true);
         options.put(Options.FIRST_MERGEID,0);
         options.put(Options.TABLE_ID,"json_table");
@@ -2721,6 +2721,8 @@ public class MVD extends Serialiser implements Serializable
                             }
                         }
                         String frag = new String(data);
+                        if ( frag.equals("verse") )
+                            System.out.println("verse");
                         BitSet curr = view.getCurrentVersions();
                         if ( set.equals(curr) )
                         {
