@@ -6,6 +6,7 @@ package edu.luc.nmerge.mvd.table;
 import java.util.*;
 import edu.luc.nmerge.mvd.Version;
 import edu.luc.nmerge.mvd.Group;
+
 /**
  * Represent a table of variants for a range in the base text. 
  * <p>The method is to assign pairs from the MVD to sections where either
@@ -316,14 +317,15 @@ public class TableView
     }
     /**
      * Convert to HTML the hard way
+     * @param options include these in JSON output
      * @return a HTML fragment as a table
      */
-    public String toJSONString()
+    public String toJSONString( HashMap<String,String> options )
     {
         String str = null;
         try
         {
-            str = toTable().toJSONString();
+            str = toTable().toJSONString(options);
         }
         catch ( Exception e )
         {

@@ -7,6 +7,9 @@ import edu.luc.nmerge.mvd.Version;
 import edu.luc.nmerge.mvd.Group;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.Iterator;
 /**
  *
  * @author desmond
@@ -248,9 +251,10 @@ public class Table extends Atom
     }
     /**
      * Convert the table to a JSON representation
+     * @param options include these in the json output
      * @return a String being a JSON document
      */
-    public String toJSONString()
+    public String toJSONString( HashMap<String,String> options )
     {
         boolean set = false;
         StringBuilder sb = new StringBuilder();
@@ -264,6 +268,24 @@ public class Table extends Atom
             sb.append( localId );
             sb.append( "\"," );
             sb.append("\"class\":\"inline\", ");
+        }
+        if ( options != null )
+        {
+            sb.append("\"options\": {");
+            Set<String> keys = options.keySet();
+            Iterator<String> iter = keys.iterator();
+            while ( iter.hasNext() )
+            {
+                String key = iter.next();
+                sb.append("\"");
+                sb.append(key);
+                sb.append("\": \"");
+                sb.append(options.get(key));
+                sb.append("\"");
+                if ( iter.hasNext() )
+                    sb.append(", ");
+            }
+            sb.append("}, ");
         }
         sb.append( "\"rows\":[" );
         // print out the rows

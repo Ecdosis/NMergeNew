@@ -2539,8 +2539,8 @@ public class MVD extends Serialiser implements Serializable
             for ( int i=0;i<versions.size();i++ )
             {
                 Version v = versions.get( i );
-                map.put( v.shortName, (short)(i+1) );
-                map.put( v.versionID(groups), (short)(i+1) );
+                String vid = v.versionID(groups);
+                map.put( vid, (short)(i+1) );
             }
             StringTokenizer st = new StringTokenizer(spec,",");
             while ( st.hasMoreTokens() )
@@ -2721,8 +2721,6 @@ public class MVD extends Serialiser implements Serializable
                             }
                         }
                         String frag = new String(data);
-                        if ( frag.equals("verse") )
-                            System.out.println("verse");
                         BitSet curr = view.getCurrentVersions();
                         if ( set.equals(curr) )
                         {
@@ -2749,7 +2747,6 @@ public class MVD extends Serialiser implements Serializable
                     if ( totals[j-1] >= lengths[j-1] )
                     {
                         view.clearCurrent((short)j);
-                        System.out.println("clearing version "+j);
                     }
                 }
             }
@@ -2780,7 +2777,10 @@ public class MVD extends Serialiser implements Serializable
         {
             BitSet bs = getSelectedVersions(spec);
             TableView view = buildDefaultTableView(base,bs,start,len);
-            return view.toJSONString();
+            HashMap<String,String> map = new HashMap<String,String>();
+            if ( spec != null )
+                map.put("selected",spec );
+            return view.toJSONString(map);
         }
         catch ( Exception e )
         {

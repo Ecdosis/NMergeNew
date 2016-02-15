@@ -165,6 +165,8 @@ public class Version extends Serialiser
             int index = group-1;
             g = groups.get( index );
         }
+        else
+            sb.insert(0,"/");
         while ( g != null )
         {
             sb.insert(0,"/");
