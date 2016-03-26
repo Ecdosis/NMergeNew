@@ -2592,11 +2592,13 @@ public class MVD extends Serialiser implements Serializable
      * @param selected the selected set of versions
      * @return an array of section starts in base
      */
-    public int[] measureTable( short base, String selected )
+    public int[] measureTable( short base )
     {
-        BitSet bs = getSelectedVersions(selected);
-        TableView tv = buildDefaultTableView( base, bs, 0, Integer.MAX_VALUE );
-        return tv.getSectionStats();
+        int[] lengths = getVersionLengths();
+        int[] stats = new int[2];
+        stats[0] = 0;
+        stats[1] = lengths[base-1];
+        return stats;
     }
     public static String versionsToString( BitSet bs )
     {
