@@ -25,7 +25,7 @@ import java.util.BitSet;
 import java.util.ArrayList;
 
 /**
- *
+ * General utilities for table view
  * @author desmond
  */
 public class Utils 

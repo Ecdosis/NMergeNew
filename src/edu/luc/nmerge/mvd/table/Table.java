@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.Set;
 import java.util.Iterator;
 /**
- *
+ * Represent the table as a set of rows
  * @author desmond
  */
 public class Table extends Atom
