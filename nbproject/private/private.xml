@@ -6,11 +6,14 @@
         <group>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/MVD.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/PairPos.java</file>
+            <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/RandomId.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/FragList.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/Chunk.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/TableCell.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/navigator/TextNavigator.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/Row.java</file>
+            <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/Options.java</file>
+            <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/SectionState.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/Section.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/graph/suffixtree/Node.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/MVDFile.java</file>
@@ -19,13 +22,17 @@
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/Table.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/Pair.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/MvdTool.java</file>
+            <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/Atom.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/Match.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/KMPSearchState.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/TextSegment.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/fastme/FastME.java</file>
+            <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/FragKind.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/Version.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/BracketedData.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/graph/Node.java</file>
+            <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/Fragment.java</file>
+            <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/Step.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/Group.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/Node.java</file>
             <file>file:/home/desmond/NetBeansProjects/NMergeNew/src/edu/luc/nmerge/mvd/table/Utils.java</file>

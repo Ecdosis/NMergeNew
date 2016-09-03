@@ -2589,7 +2589,6 @@ public class MVD extends Serialiser implements Serializable
     /**
      * Measure a table without turning it into HTML or JSON
      * @param base the base version
-     * @param selected the selected set of versions
      * @return an array of section starts in base
      */
     public int[] measureTable( short base )
